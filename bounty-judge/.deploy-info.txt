@@ -1,0 +1,27 @@
+=== Deploy Info — Bounty Judge Contracts v2 ===
+Network: Base Mainnet (Chain ID 8453)
+Deployer: 0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4
+RPC: https://mainnet.base.org
+
+--- BountyJudge (Track 1: Commit-Reveal) v2 ---
+Contract Address: 0x71Dda5aEC3885B197d650BADA995D10f382d7793
+TX Hash: 0x874436164e3bc4b197364310736e68fde93df389c82e48c1203b5896147f79a3
+Block: 47734861
+Gas Used: 1,706,987
+Constructor: precompile = 0x0000000000000000000000000000000000000802
+
+Changes from v1:
+- Precompile address configurable (constructor param), not hardcoded
+- IRitualWallet removed (unused)
+- revealedCount O(1) (stored directly, no loop)
+
+--- RitualBountyJudge (Track 2: Ritual TEE) ---
+Contract Address: 0x983c4Ff16882793e582C5D402A75e9045Ca881B2
+TX Hash: 0xe498641c75b8deb6c4abd313d400a5ff5049f6ff46394f78a999d930c432c134
+Block: 47734047
+Gas Used: 1,061,952
+Constructor: none
+
+--- Links ---
+BountyJudge v2: https://basescan.org/address/0x71Dda5aEC3885B197d650BADA995D10f382d7793
+RitualBountyJudge: https://basescan.org/address/0x983c4Ff16882793e582C5D402A75e9045Ca881B2
