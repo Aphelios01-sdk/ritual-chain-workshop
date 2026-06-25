@@ -141,6 +141,19 @@ contract BountyJudge is PrecompileConsumer {
     // On Ritual Chain: 0x0802. On other EVM chains: an equivalent LLM contract address.
     address public immutable LLM_PRECOMPILE;
 
+    // Ritual Chain reports block.timestamp in MILLISECONDS, not seconds (verified
+    // on-chain: latest block ≈ 1.78e12). Standard EVM chains use seconds.
+    // To keep deadline semantics identical across chains (caller always passes
+    // SECOND-based Unix deadlines), we detect the unit at construction and
+    // normalise Ritual's ms back to seconds via _now().
+    uint256 private constant MS_THRESHOLD = 10 ** 12;
+    bool internal immutable USES_MS_TIMESTAMP;
+
+    /// @dev Chain-normalised "now" in SECONDS, regardless of the chain's native unit.
+    function _now() internal view returns (uint256) {
+        return USES_MS_TIMESTAMP ? block.timestamp / 1000 : block.timestamp;
+    }
+
     // ────────────── Events ──────────────
     event BountyCreated(
         uint256 indexed bountyId,
@@ -184,6 +197,7 @@ contract BountyJudge is PrecompileConsumer {
     // ────────────── Constructor ──────────────
     constructor(address _precompile) {
         LLM_PRECOMPILE = _precompile;
+        USES_MS_TIMESTAMP = block.timestamp > MS_THRESHOLD;
     }
 
     // ────────────── Bounty Creation ──────────────
@@ -208,7 +222,7 @@ contract BountyJudge is PrecompileConsumer {
         returns (uint256 bountyId)
     {
         require(msg.value > 0, "reward required");
-        require(_submissionDeadline > block.timestamp, "submission deadline in past");
+        require(_submissionDeadline > _now(), "submission deadline in past");
         require(_revealDeadline > _submissionDeadline, "reveal before submission");
 
         bountyId = nextBountyId++;
@@ -239,7 +253,7 @@ contract BountyJudge is PrecompileConsumer {
     {
         Bounty storage b = bounties[bountyId];
         require(b.phase == Phase.SUBMISSION, "not in submission");
-        require(block.timestamp <= b.submissionDeadline, "submission deadline passed");
+        require(_now() <= b.submissionDeadline, "submission deadline passed");
         require(b.submissions[msg.sender].commitment == bytes32(0), "already submitted");
 
         b.submissions[msg.sender].commitment = commitment;
@@ -267,13 +281,13 @@ contract BountyJudge is PrecompileConsumer {
         Bounty storage b = bounties[bountyId];
 
         // Cannot reveal while still in submission window
-        if (b.phase == Phase.SUBMISSION && block.timestamp <= b.submissionDeadline) {
+        if (b.phase == Phase.SUBMISSION && _now() <= b.submissionDeadline) {
             revert StillInSubmission();
         }
         // Cannot reveal after finalized
         if (b.phase == Phase.FINALIZED) revert AlreadyFinalized();
         // Cannot reveal after reveal deadline
-        require(block.timestamp <= b.revealDeadline, "reveal deadline passed");
+        require(_now() <= b.revealDeadline, "reveal deadline passed");
 
         Submission storage sub = b.submissions[msg.sender];
         require(sub.commitment != bytes32(0), "no commitment");
@@ -324,7 +338,7 @@ contract BountyJudge is PrecompileConsumer {
 
         require(!b.judged, "already judged");
         require(!b.finalized, "already finalized");
-        require(block.timestamp > b.revealDeadline, "reveal deadline not passed");
+        require(_now() > b.revealDeadline, "reveal deadline not passed");
 
         // Count revealed submissions for sanity check (O(1))
         uint256 revealedCount = b.revealedCount;

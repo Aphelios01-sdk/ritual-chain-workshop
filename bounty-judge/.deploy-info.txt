@@ -5,24 +5,35 @@ Deployer: 0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4
 Deploy script: script/Deploy.s.sol
 
 --- BountyJudge (Track 1: Commit-Reveal) v2 ---
-Contract Address: 0x06a85184E552C3fD1bD0b8d7D178b3FceFdd3dC9
-TX Hash: 0x55ab4db432f1b69e8b2003f8a9abd47b1741cfc55e7ce672ead84353c5756884
+Contract Address: 0x2B75AE3b7F6522ED66BE4Df1432E2a283058cef0
+TX Hash: 0x4072ca96441010fd013a18f52d5055f4351fb692209397468e995e10b7ad4753
 Constructor: precompile = 0x0000000000000000000000000000000000000802
   (Ritual Chain native LLM inference precompile — makes judgeAll() functional)
-On-chain check: LLM_PRECOMPILE() -> 0x0802, nextBountyId() -> 1
+On-chain check: LLM_PRECOMPILE() -> 0x0802, nextBountyId -> 1 (fresh)
 
 Changes from v1:
 - Precompile address configurable (constructor param), not hardcoded
 - IRitualWallet removed (unused)
 - revealedCount O(1) (stored directly, no loop)
+- Ritual ms-timestamp normalisation (block.timestamp > 1e12 => ms; _now() /1000)
 
 --- RitualBountyJudge (Track 2: Ritual TEE) ---
-Contract Address: 0x65C9A64554C11ac9759072150684A683315D6762
-TX Hash: 0x4821d37903e25ca296518c533676655f94250ffe7a39ca30509d2cb397e578f0
+Contract Address: 0x4a8358919c82562489D0ca7ae3b22C6089DC8Ca6
+TX Hash: 0x174c95e124137225ba8469c176ac007632272fb45c9ffebb3239b8615212fd32
 Constructor: none
+
+--- Ritual ms-timestamp proof (on new BountyJudge, second-based deadlines) ---
+createBounty   : 0x5227baffa8c34cc58dd0b33b72c3e4757319e0d56de91eae65354c97f1aaa0cc  status=1
+submitCommitment: 0x25b34ee843b6556434846de2df44582cd0ed8d50491d284845da88e6db3c25bc  status=1
 
 --- Why Ritual Chain (not Base) ---
 The commit-reveal logic runs on any EVM chain, but judgeAll() calls the LLM
 inference precompile at 0x0802. That precompile only exists on Ritual Chain
 (chainId 1979), so the full lifecycle (including AI judging + finalizeWinner)
 requires deploying to Ritual — a Base mainnet deployment could not run judgeAll.
+
+--- Ritual ms-timestamp note ---
+Ritual reports block.timestamp in MILLISECONDS (~1.78e12). The contract
+auto-detects this (block.timestamp > 1e12) and normalises to seconds via
+_now(), so callers always pass standard second-based deadlines and the
+contract works unchanged on any EVM chain. See RitualMsTimestampTest.

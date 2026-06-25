@@ -83,6 +83,16 @@ contract RitualBountyJudge {
     mapping(uint256 => Bounty) public bounties;
     uint256 public bountyCount;
 
+    // Ritual Chain reports block.timestamp in MILLISECONDS (verified on-chain).
+    // Normalise to seconds so callers always pass SECOND-based deadlines.
+    uint256 private constant MS_THRESHOLD = 10 ** 12;
+    bool internal immutable USES_MS_TIMESTAMP;
+
+    /// @dev Chain-normalised "now" in SECONDS, regardless of the chain's native unit.
+    function _now() internal view returns (uint256) {
+        return USES_MS_TIMESTAMP ? block.timestamp / 1000 : block.timestamp;
+    }
+
     // ────────────── Events ──────────────
     event BountyCreated(uint256 bountyId, address creator, uint256 deadline, bytes32 enclaveCodeHash);
     event EncryptedSubmission(uint256 bountyId, address participant);
@@ -90,7 +100,9 @@ contract RitualBountyJudge {
     event WinnerFinalized(uint256 bountyId, address winner, uint256 score);
 
     // ────────────── Constructor ──────────────
-    // (empty — bounties carry their own verifier for maximum flexibility)
+    constructor() {
+        USES_MS_TIMESTAMP = block.timestamp > MS_THRESHOLD;
+    }
 
     // ────────────── Bounty Lifecycle ──────────────
 
@@ -112,7 +124,7 @@ contract RitualBountyJudge {
         external
         returns (uint256 bountyId)
     {
-        require(_submissionDeadline > block.timestamp, "deadline in past");
+        require(_submissionDeadline > _now(), "deadline in past");
 
         bountyId = ++bountyCount;
         Bounty storage b = bounties[bountyId];
@@ -144,7 +156,7 @@ contract RitualBountyJudge {
     {
         Bounty storage b = bounties[bountyId];
         require(b.phase == Phase.SUBMISSION, "not in submission");
-        require(block.timestamp <= b.submissionDeadline, "deadline passed");
+        require(_now() <= b.submissionDeadline, "deadline passed");
         require(!b.submissions[msg.sender].submitted, "already submitted");
 
         b.submissions[msg.sender] = Submission({
@@ -187,7 +199,7 @@ contract RitualBountyJudge {
     {
         Bounty storage b = bounties[bountyId];
         require(b.phase == Phase.SUBMISSION, "not in submission");
-        require(block.timestamp > b.submissionDeadline, "submission still open");
+        require(_now() > b.submissionDeadline, "submission still open");
         require(rankedAddrs.length == scores.length, "length mismatch");
         require(rankedAddrs.length > 0, "no submissions");
 

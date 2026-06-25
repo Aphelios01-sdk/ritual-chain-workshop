@@ -713,3 +713,64 @@ contract RitualBountyJudgeTest is Test {
         assertEq(p[1], BOB);
     }
 }
+
+// ═══════════════════════════════════════════════════════
+//  Ritual Chain timestamp normalization (ms → seconds)
+//  Ritual reports block.timestamp in MILLISECONDS (~1.78e12).
+//  The contract auto-detects this and normalises to seconds so that
+//  standard SECOND-based deadlines work on any chain.
+// ═══════════════════════════════════════════════════════
+contract RitualMsTimestampTest is Test {
+    function testBountyJudgeMsChainSecondsDeadlinesWork() public {
+        // Simulate Ritual's millisecond block.timestamp.
+        uint256 msNow = 1_782_418_350_161; // > 1e12 → detected as ms chain
+        vm.warp(msNow);
+        assertTrue(block.timestamp > 1e12, "precondition: chain now is in ms");
+
+        BountyJudge msJudge = new BountyJudge(address(0x0802));
+
+        // Caller passes STANDARD second-based deadlines (the EVM convention).
+        uint256 nowSeconds = msNow / 1000;
+        uint256 subDeadline = nowSeconds + 1 days;
+        uint256 revDeadline = nowSeconds + 3 days;
+
+        address owner = address(0xCAFE);
+        vm.deal(owner, 1 ether);
+
+        // createBounty must succeed despite chain "now" being ~1000x the deadline unit.
+        vm.prank(owner);
+        uint256 id = msJudge.createBounty{value: 0.01 ether}("ms test", "rubric", subDeadline, revDeadline);
+        assertEq(id, 1);
+
+        // A participant can still commit during the submission window.
+        address alice = address(0xA11CE);
+        bytes32 commitment = keccak256(abi.encodePacked("answer", bytes32(uint256(0xa)), alice, id));
+        vm.prank(alice);
+        msJudge.submitCommitment(id, commitment);
+
+        (bytes32 stored,, ) = msJudge.getSubmission(id, alice);
+        assertTrue(stored != bytes32(0), "commitment stored under ms chain");
+    }
+
+    function testRitualBountyJudgeMsChainSecondsDeadlineWork() public {
+        uint256 msNow = 1_782_418_350_161;
+        vm.warp(msNow);
+
+        MockRitualVerifier verifier = new MockRitualVerifier();
+        RitualBountyJudge msJudge = new RitualBountyJudge();
+
+        uint256 nowSeconds = msNow / 1000;
+        uint256 deadline = nowSeconds + 1 days;
+
+        // createBounty + encrypted submit must work with second-based deadline on a ms chain.
+        uint256 id = msJudge.createBounty(deadline, bytes32(uint256(0xdeadbeef)), address(verifier));
+        assertEq(id, 1);
+
+        address alice = address(0xA11CE);
+        vm.prank(alice);
+        msJudge.submitEncryptedAnswer(id, hex"deadbeef");
+
+        (, bool submitted,) = msJudge.getSubmissionEncrypted(id, alice);
+        assertTrue(submitted, "encrypted submit stored under ms chain");
+    }
+}

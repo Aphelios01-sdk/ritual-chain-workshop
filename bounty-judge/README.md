@@ -56,7 +56,7 @@ The **commit-reveal logic** (submitCommitment, revealAnswer, finalizeWinner) wor
 
 The **LLM judging** (`judgeAll`) requires a deployed LLM inference contract at the configured address. On **Ritual Chain**, the native precompile at `0x0802` provides this — so the full lifecycle (including `judgeAll` and `finalizeWinner`) is functional. This is why **this deployment targets Ritual Chain (chainId 1979)** rather than a chain without the precompile.
 
-**Deployed on Ritual Chain at**: `0x06a85184E552C3fD1bD0b8d7D178b3FceFdd3dC9`
+**Deployed on Ritual Chain at**: `0x2B75AE3b7F6522ED66BE4Df1432E2a283058cef0`
 
 ### Precompile Configuration
 
@@ -136,7 +136,7 @@ The `revealedCount` is now stored as a uint256 field in the Bounty struct, incre
 3. Single LLM prompt: `"Judge N submissions: [1]...[2]... Return ranking."`
 4. TEE signs result with attestation key → verified on-chain against `enclaveCodeHash`
 
-**Deployed on Ritual Chain at**: `0x65C9A64554C11ac9759072150684A683315D6762`
+**Deployed on Ritual Chain at**: `0x4a8358919c82562489D0ca7ae3b22C6089DC8Ca6`
 
 ### Why stronger than commit-reveal
 
@@ -195,24 +195,42 @@ precompile `0x0000000000000000000000000000000000000802` and deploys
 
 ### Commit-reveal flow status (Ritual Chain)
 
+Proved end-to-end on the deployed contract using **standard second-based
+deadlines** (which only work because of the ms normalisation — see below):
+
 | Step | TX Hash | Status |
 |------|---------|--------|
-| `createBounty` (0.00001 ETH) | _fill after interaction_ | ⏳ |
-| `submitCommitment` | _fill after interaction_ | ⏳ |
-| `revealAnswer` | _fill after reveal deadline_ | ⏳ |
-| `judgeAll` | _fills after reveal deadline — calls native precompile 0x0802_ | ⏳ |
-| `finalizeWinner` | _fill after `judgeAll`_ | ⏳ |
+| `createBounty` (0.0001 ETH, second-based deadlines) | `0x5227baffa8c34cc58dd0b33b72c3e4757319e0d56de91eae65354c97f1aaa0cc` | ✅ |
+| `submitCommitment` | `0x25b34ee843b6556434846de2df44582cd0ed8d50491d284845da88e6db3c25bc` | ✅ |
+| `revealAnswer` | _after submission deadline — requires time warp; tested in `RitualMsTimestampTest`_ | ⏳ |
+| `judgeAll` | _after reveal deadline — calls native precompile 0x0802_ | ⏳ |
+| `finalizeWinner` | _after `judgeAll`_ | ⏳ |
 
 > On Ritual Chain every step is functional, including `judgeAll` (LLM precompile)
 > and `finalizeWinner`. This is the key advantage over a Base deployment, where
 > the last two steps cannot execute.
 
+### Ritual Chain timestamp handling (ms → seconds)
+
+Ritual Chain reports `block.timestamp` in **milliseconds**, not seconds
+(verified on-chain: latest block ≈ `1.78e12`, i.e. epoch×1000). A naïve
+contract that compares second-based caller deadlines against `block.timestamp`
+fails instantly on Ritual — even `createBounty` reverts with
+`submission deadline in past`.
+
+This contract auto-detects the unit at construction
+(`block.timestamp > 1e12` ⇒ ms) and normalises via an internal `_now()` helper
+that divides by 1000 on ms chains. Callers therefore always pass **standard
+second-based Unix deadlines**, and the same contract works unchanged on any EVM
+chain. Covered by `RitualMsTimestampTest` (warps to a ms-scale timestamp and
+confirms second-based deadlines succeed).
+
 ### Deploy Transactions
 
 | Contract | Deploy TX |
 |----------|-----------|
-| BountyJudge v2 | `0x55ab4db432f1b69e8b2003f8a9abd47b1741cfc55e7ce672ead84353c5756884` |
-| RitualBountyJudge | `0x4821d37903e25ca296518c533676655f94250ffe7a39ca30509d2cb397e578f0` |
+| BountyJudge v2 | `0x4072ca96441010fd013a18f52d5055f4351fb692209397468e995e10b7ad4753` |
+| RitualBountyJudge | `0x174c95e124137225ba8469c176ac007632272fb45c9ffebb3239b8615212fd32` |
 
 ---
 
@@ -366,5 +384,5 @@ forge script script/Deploy.s.sol \
 
 RPC: `https://rpc.ritualfoundation.org` · Deployer: `0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4`
 
-- BountyJudge v2: `0x06a85184E552C3fD1bD0b8d7D178b3FceFdd3dC9` — `LLM_PRECOMPILE = 0x0802`
-- RitualBountyJudge: `0x65C9A64554C11ac9759072150684A683315D6762`
+- BountyJudge v2: `0x2B75AE3b7F6522ED66BE4Df1432E2a283058cef0` — `LLM_PRECOMPILE = 0x0802`, ms-timestamp normalised
+- RitualBountyJudge: `0x4a8358919c82562489D0ca7ae3b22C6089DC8Ca6`
