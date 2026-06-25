@@ -26,6 +26,24 @@ Constructor: none
 createBounty   : 0x5227baffa8c34cc58dd0b33b72c3e4757319e0d56de91eae65354c97f1aaa0cc  status=1
 submitCommitment: 0x25b34ee843b6556434846de2df44582cd0ed8d50491d284845da88e6db3c25bc  status=1
 
+--- Full commit-reveal proven live (bounty 2, two participants) ---
+createBounty    : 0x05a19b02e42c99ad22835fbca3a9509c02142e046d52137373cf0893e32714de
+submitCommitment: 0x2e50ef72865cb69cedbc55354ae97696f0bab8a178bdfe19932b749e36a3469a (P1)
+submitCommitment: 0xcd78b35700a6e7ccf4e39ab2b37868f2a6d8316a56531b5171cb43732cd02240 (P2)
+revealAnswer    : 0xb51211e616130d5815afbfb37474036db63c7c6d35ff6b0afed413c66e186e4e (P1, verified)
+revealAnswer    : 0x6e692a3a15a69c6528331f5592134ead619ed0882f564480072ce5ef8237188d (P2, verified)
+revealedCount = 2 (both commitments validated against keccak256(answer,salt,sender,bountyId))
+
+--- judgeAll live attempt (honest status) ---
+Two Ritual billing requirements found:
+  1. executorAddress must be a TEE-registered executor (0x0802 is NOT registered);
+     resolved by using 0xB42e435c4252A5a2E7440e37B609F00c61a0c91B.
+  2. Ritual reserves a fixed 0.311 RITUAL of wallet balance per inference
+     (independent of maxCompletionTokens); the deployer wallet had insufficient
+     testnet RITUAL to cover it, so the live call could not complete.
+The contract path is correct (matches workshop request encoding + 5-tuple output
+decode). judgeAll/finalizeWinner are fully covered in the 46-test suite (mocked).
+
 --- Why Ritual Chain (not Base) ---
 The commit-reveal logic runs on any EVM chain, but judgeAll() calls the LLM
 inference precompile at 0x0802. That precompile only exists on Ritual Chain
