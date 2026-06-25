@@ -211,8 +211,8 @@ precompile `0x0000000000000000000000000000000000000802` and deploys
 
 | Contract | Deploy TX |
 |----------|-----------|
-| BountyJudge v2 | `0x4821d37903e25ca296518c533676655f94250ffe7a39ca30509d2cb397e578f0` |
-| RitualBountyJudge | `0x55ab4db432f1b69e8b2003f8a9abd47b1741cfc55e7ce672ead84353c5756884` |
+| BountyJudge v2 | `0x55ab4db432f1b69e8b2003f8a9abd47b1741cfc55e7ce672ead84353c5756884` |
+| RitualBountyJudge | `0x4821d37903e25ca296518c533676655f94250ffe7a39ca30509d2cb397e578f0` |
 
 ---
 

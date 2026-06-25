@@ -6,7 +6,7 @@ Deploy script: script/Deploy.s.sol
 
 --- BountyJudge (Track 1: Commit-Reveal) v2 ---
 Contract Address: 0x06a85184E552C3fD1bD0b8d7D178b3FceFdd3dC9
-TX Hash: 0x4821d37903e25ca296518c533676655f94250ffe7a39ca30509d2cb397e578f0
+TX Hash: 0x55ab4db432f1b69e8b2003f8a9abd47b1741cfc55e7ce672ead84353c5756884
 Constructor: precompile = 0x0000000000000000000000000000000000000802
   (Ritual Chain native LLM inference precompile — makes judgeAll() functional)
 On-chain check: LLM_PRECOMPILE() -> 0x0802, nextBountyId() -> 1
@@ -18,7 +18,7 @@ Changes from v1:
 
 --- RitualBountyJudge (Track 2: Ritual TEE) ---
 Contract Address: 0x65C9A64554C11ac9759072150684A683315D6762
-TX Hash: 0x55ab4db432f1b69e8b2003f8a9abd47b1741cfc55e7ce672ead84353c5756884
+TX Hash: 0x4821d37903e25ca296518c533676655f94250ffe7a39ca30509d2cb397e578f0
 Constructor: none
 
 --- Why Ritual Chain (not Base) ---

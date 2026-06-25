@@ -33,8 +33,8 @@ where the native LLM inference precompile at `0x0802` makes `judgeAll()` /
 - BountyJudge v2: `0x06a85184E552C3fD1bD0b8d7D178b3FceFdd3dC9` (`LLM_PRECOMPILE = 0x0802`)
 - RitualBountyJudge: `0x65C9A64554C11ac9759072150684A683315D6762`
 
-Deploy TXs: `0x4821d37903e25ca296518c533676655f94250ffe7a39ca30509d2cb397e578f0` (BountyJudge),
-`0x55ab4db432f1b69e8b2003f8a9abd47b1741cfc55e7ce672ead84353c5756884` (RitualBountyJudge).
+Deploy TXs: `0x55ab4db432f1b69e8b2003f8a9abd47b1741cfc55e7ce672ead84353c5756884` (BountyJudge),
+`0x4821d37903e25ca296518c533676655f94250ffe7a39ca30509d2cb397e578f0` (RitualBountyJudge).
 
 See [`bounty-judge/README.md`](./bounty-judge/README.md) for the full lifecycle,
 architecture comparison (commit-reveal vs Ritual-native), test plan, and the
