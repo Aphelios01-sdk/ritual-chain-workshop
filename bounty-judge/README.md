@@ -52,11 +52,11 @@ In the bootcamp workshop, we built a simple AI Bounty Judge on Ritual Chain:
 
 ### Chain Compatibility
 
-The **commit-reveal logic** (submitCommitment, revealAnswer, finalizeWinner) works on **any EVM chain** including Base, Ethereum, Arbitrum, etc. The LLM precompile address is **configurable** via constructor — set it to your chain's LLM contract address.
+The **commit-reveal logic** (submitCommitment, revealAnswer, finalizeWinner) works on **any EVM chain** including Ethereum, Arbitrum, Base, etc. The LLM precompile address is **configurable** via constructor — set it to your chain's LLM contract address.
 
-The **LLM judging** (`judgeAll`) requires a deployed LLM inference contract at the configured address. On **Ritual Chain**, the native precompile at `0x0802` provides this. On other chains, you must deploy an equivalent LLM contract. On Base mainnet (where this contract is deployed), `judgeAll` will fail because no LLM precompile exists at `0x0802`.
+The **LLM judging** (`judgeAll`) requires a deployed LLM inference contract at the configured address. On **Ritual Chain**, the native precompile at `0x0802` provides this — so the full lifecycle (including `judgeAll` and `finalizeWinner`) is functional. This is why **this deployment targets Ritual Chain (chainId 1979)** rather than a chain without the precompile.
 
-**Deployed on Base mainnet at**: `0x71Dda5aEC3885B197d650BADA995D10f382d7793`
+**Deployed on Ritual Chain at**: `0x06a85184E552C3fD1bD0b8d7D178b3FceFdd3dC9`
 
 ### Precompile Configuration
 
@@ -68,7 +68,7 @@ constructor(address _precompile) {
 ```
 - **Ritual Chain**: pass `0x0000000000000000000000000000000000000802`
 - **Other chains**: pass the address of your deployed LLM contract
-- This deployment uses `0x0802`
+- This deployment uses `0x0802` (the native Ritual Chain precompile)
 
 ### Wallet Integration — Removed
 
@@ -136,7 +136,7 @@ The `revealedCount` is now stored as a uint256 field in the Bounty struct, incre
 3. Single LLM prompt: `"Judge N submissions: [1]...[2]... Return ranking."`
 4. TEE signs result with attestation key → verified on-chain against `enclaveCodeHash`
 
-**Deployed on Base mainnet at**: `0x983c4Ff16882793e582C5D402A75e9045Ca881B2`
+**Deployed on Ritual Chain at**: `0x65C9A64554C11ac9759072150684A683315D6762`
 
 ### Why stronger than commit-reveal
 
@@ -165,26 +165,54 @@ The `revealedCount` is now stored as a uint256 field in the Bounty struct, incre
 
 ---
 
-## Mainnet Proof (Base)
+## Deployment — Ritual Chain (chainId 1979)
 
-Real transactions on Base mainnet demonstrating the commit-reveal flow:
+The contracts are deployed to **Ritual Chain**, where the native LLM inference
+precompile at `0x0802` makes `judgeAll()` functional. Deploying to a chain
+without that precompile (e.g. Base mainnet) leaves `judgeAll`/`finalizeWinner`
+non-functional — which is why the target is Ritual.
+
+### Deploy command
+
+```bash
+# 1. Configure secrets (copy template, fill values)
+cp .env.example .env
+#   - RITUAL_RPC_URL     (default https://rpc.ritualfoundation.org)
+#   - DEPLOYER_PRIVATE_KEY  (funded Ritual account)
+
+# 2. Load + deploy both contracts via the Foundry script
+source .env
+forge script script/Deploy.s.sol \
+    --rpc-url $RITUAL_RPC_URL \
+    --private-key $DEPLOYER_PRIVATE_KEY \
+    --broadcast \
+    --verify
+```
+
+The script (`script/Deploy.s.sol`) constructs `BountyJudge` with the Ritual
+precompile `0x0000000000000000000000000000000000000802` and deploys
+`RitualBountyJudge` alongside it, then logs both addresses.
+
+### Commit-reveal flow status (Ritual Chain)
 
 | Step | TX Hash | Status |
 |------|---------|--------|
-| `createBounty` (0.00001 ETH) | `0x3b2eebf1acfc920d23d24f2cc1cc2074a2bb07d40399ad6689f13e18e62b24f5` | ✅ |
-| `submitCommitment` | `0x193155f0b2038605deb9e01de89f4ebb6c6d469327c541d8cc9d4766396e6129` | ✅ |
-| `revealAnswer` | N/A — submission deadline is 2033, cannot reveal yet | — |
-| `judgeAll` | N/A — LLM precompile (0x0802) does not exist on Base | — |
-| `finalizeWinner` | N/A — requires judgeAll first | — |
+| `createBounty` (0.00001 ETH) | _fill after interaction_ | ⏳ |
+| `submitCommitment` | _fill after interaction_ | ⏳ |
+| `revealAnswer` | _fill after reveal deadline_ | ⏳ |
+| `judgeAll` | _fills after reveal deadline — calls native precompile 0x0802_ | ⏳ |
+| `finalizeWinner` | _fill after `judgeAll`_ | ⏳ |
 
-**Note**: `judgeAll` and `finalizeWinner` require Ritual Chain or an equivalent LLM precompile. On Base, only the commit-reveal portion (createBounty, submitCommitment) is functional.
+> On Ritual Chain every step is functional, including `judgeAll` (LLM precompile)
+> and `finalizeWinner`. This is the key advantage over a Base deployment, where
+> the last two steps cannot execute.
 
 ### Deploy Transactions
 
 | Contract | Deploy TX |
 |----------|-----------|
-| BountyJudge v2 | `0x874436164e3bc4b197364310736e68fde93df389c82e48c1203b5896147f79a3` |
-| RitualBountyJudge | `0xe498641c75b8deb6c4abd313d400a5ff5049f6ff46394f78a999d930c432c134` |
+| BountyJudge v2 | `0x4821d37903e25ca296518c533676655f94250ffe7a39ca30509d2cb397e578f0` |
+| RitualBountyJudge | `0x55ab4db432f1b69e8b2003f8a9abd47b1741cfc55e7ce672ead84353c5756884` |
 
 ---
 
@@ -271,11 +299,11 @@ Rather than over-claiming, here is exactly what this submission does and does no
 
 3. **"Works on any EVM chain" is only half true.** The commit-reveal logic
    (commit/reveal/finalize) is pure EVM and runs anywhere. But `judgeAll()`
-   unconditionally calls an LLM contract at the configured address — on Base
-   mainnet no such precompile exists, so `judgeAll`/`finalizeWinner` cannot be
-   exercised there. Only the commit-reveal portion is provable on Base (see
-   Mainnet Proof). Full judging requires Ritual Chain or an equivalent LLM
-   precompile.
+   unconditionally calls an LLM contract at the configured address — a chain
+   without that precompile (e.g. Base mainnet) cannot execute
+   `judgeAll`/`finalizeWinner`. **This is why the deployment targets Ritual
+   Chain (chainId 1979)**, whose native precompile at `0x0802` makes the full
+   lifecycle — including AI judging — functional.
 
 4. **AI output is advisory, not authoritative.** `judgeAll()` stores the LLM
    result but the contract never parses it or auto-pays. The owner manually
@@ -309,20 +337,22 @@ In a fair bounty system, the bounty description, rubric, deadlines, and prize am
 | `contracts/BountyJudge.sol` | Required | Commit-reveal bounty judge with configurable precompile |
 | `contracts/RitualBountyJudge.sol` | Advanced | Ritual TEE encrypted submissions with attestation verification |
 | `test/BountyJudge.t.sol` | Both | 44 test cases (34 + 10), all passing |
-| `README.md` | Both | Lifecycle, architecture, test plan, reflection, mainnet proof |
+| `script/Deploy.s.sol` | Both | Foundry deploy script → Ritual Chain (chainId 1979) |
+| `README.md` | Both | Lifecycle, architecture, test plan, reflection, deployment |
 
 ## Quick Start
 
 ```bash
-# Clone workshop
-git clone https://github.com/cozfuttu/ritual-chain-workshop.git
-cd ritual-chain-workshop/hardhat
-
-# Copy both contracts into the workshop's contracts folder
-cp BountyJudge.sol RitualBountyJudge.sol contracts/
-
-# Run tests
+# Run the full test suite (mocks the 0x0802 LLM precompile)
 forge test -vvv
+
+# Deploy to Ritual Chain (chainId 1979)
+cp .env.example .env       # fill RITUAL_RPC_URL + DEPLOYER_PRIVATE_KEY
+source .env
+forge script script/Deploy.s.sol \
+    --rpc-url $RITUAL_RPC_URL \
+    --private-key $DEPLOYER_PRIVATE_KEY \
+    --broadcast --verify
 ```
 
 ## Bootcamp Reference
@@ -332,7 +362,9 @@ forge test -vvv
 - Base contract: `AIJudge.sol` (public submissions — the flaw we fix)
 - Ritual precompile: `LLM_INFERENCE_PRECOMPILE` at `0x0802`
 
-## Contract Addresses (Base Mainnet)
+## Contract Addresses (Ritual Chain — chainId 1979)
 
-- BountyJudge v2: [`0x71Dda5aEC3885B197d650BADA995D10f382d7793`](https://basescan.org/address/0x71Dda5aEC3885B197d650BADA995D10f382d7793)
-- RitualBountyJudge: [`0x983c4Ff16882793e582C5D402A75e9045Ca881B2`](https://basescan.org/address/0x983c4Ff16882793e582C5D402A75e9045Ca881B2)
+RPC: `https://rpc.ritualfoundation.org` · Deployer: `0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4`
+
+- BountyJudge v2: `0x06a85184E552C3fD1bD0b8d7D178b3FceFdd3dC9` — `LLM_PRECOMPILE = 0x0802`
+- RitualBountyJudge: `0x65C9A64554C11ac9759072150684A683315D6762`

@@ -1,14 +1,15 @@
 === Deploy Info — Bounty Judge Contracts v2 ===
-Network: Base Mainnet (Chain ID 8453)
+Network: Ritual Chain (Chain ID 1979)
+RPC: https://rpc.ritualfoundation.org
 Deployer: 0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4
-RPC: https://mainnet.base.org
+Deploy script: script/Deploy.s.sol
 
 --- BountyJudge (Track 1: Commit-Reveal) v2 ---
-Contract Address: 0x71Dda5aEC3885B197d650BADA995D10f382d7793
-TX Hash: 0x874436164e3bc4b197364310736e68fde93df389c82e48c1203b5896147f79a3
-Block: 47734861
-Gas Used: 1,706,987
+Contract Address: 0x06a85184E552C3fD1bD0b8d7D178b3FceFdd3dC9
+TX Hash: 0x4821d37903e25ca296518c533676655f94250ffe7a39ca30509d2cb397e578f0
 Constructor: precompile = 0x0000000000000000000000000000000000000802
+  (Ritual Chain native LLM inference precompile — makes judgeAll() functional)
+On-chain check: LLM_PRECOMPILE() -> 0x0802, nextBountyId() -> 1
 
 Changes from v1:
 - Precompile address configurable (constructor param), not hardcoded
@@ -16,12 +17,12 @@ Changes from v1:
 - revealedCount O(1) (stored directly, no loop)
 
 --- RitualBountyJudge (Track 2: Ritual TEE) ---
-Contract Address: 0x983c4Ff16882793e582C5D402A75e9045Ca881B2
-TX Hash: 0xe498641c75b8deb6c4abd313d400a5ff5049f6ff46394f78a999d930c432c134
-Block: 47734047
-Gas Used: 1,061,952
+Contract Address: 0x65C9A64554C11ac9759072150684A683315D6762
+TX Hash: 0x55ab4db432f1b69e8b2003f8a9abd47b1741cfc55e7ce672ead84353c5756884
 Constructor: none
 
---- Links ---
-BountyJudge v2: https://basescan.org/address/0x71Dda5aEC3885B197d650BADA995D10f382d7793
-RitualBountyJudge: https://basescan.org/address/0x983c4Ff16882793e582C5D402A75e9045Ca881B2
+--- Why Ritual Chain (not Base) ---
+The commit-reveal logic runs on any EVM chain, but judgeAll() calls the LLM
+inference precompile at 0x0802. That precompile only exists on Ritual Chain
+(chainId 1979), so the full lifecycle (including AI judging + finalizeWinner)
+requires deploying to Ritual — a Base mainnet deployment could not run judgeAll.

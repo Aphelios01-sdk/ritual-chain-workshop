@@ -11,3 +11,6 @@ verbosity = 3
 
 [fmt]
 line_length = 100
+
+[rpc_endpoints]
+ritual = "${RITUAL_RPC_URL}"
