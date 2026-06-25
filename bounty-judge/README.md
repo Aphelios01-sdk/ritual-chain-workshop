@@ -165,7 +165,7 @@ The `revealedCount` is now stored as a uint256 field in the Bounty struct, incre
 
 ---
 
-## Deployment — Ritual Chain (chainId 1979)
+## Deployment — Ritual Chain testnet (chainId 1979)
 
 The contracts are deployed to **Ritual Chain**, where the native LLM inference
 precompile at `0x0802` makes `judgeAll()` functional. Deploying to a chain
@@ -380,7 +380,7 @@ forge script script/Deploy.s.sol \
 - Base contract: `AIJudge.sol` (public submissions — the flaw we fix)
 - Ritual precompile: `LLM_INFERENCE_PRECOMPILE` at `0x0802`
 
-## Contract Addresses (Ritual Chain — chainId 1979)
+## Contract Addresses (Ritual Chain testnet — chainId 1979)
 
 RPC: `https://rpc.ritualfoundation.org` · Deployer: `0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4`
 

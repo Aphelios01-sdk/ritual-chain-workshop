@@ -24,7 +24,7 @@ forge test            # 44/44 passing (forge build && forge test -vvv)
 | `bounty-judge/README.md` | Both | Lifecycle, architecture, honesty notes, reflection |
 | `bounty-judge/.deploy-info.txt` | — | Deploy addresses + TX hashes on Ritual Chain |
 
-## Deployed on Ritual Chain (chain 1979)
+## Deployed on Ritual Chain testnet (chain 1979)
 
 Deployed via `forge script script/Deploy.s.sol --rpc-url ritual --broadcast`,
 where the native LLM inference precompile at `0x0802` makes `judgeAll()` /

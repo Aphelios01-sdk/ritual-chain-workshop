@@ -1,5 +1,5 @@
 === Deploy Info — Bounty Judge Contracts v2 ===
-Network: Ritual Chain (Chain ID 1979)
+Network: Ritual Chain testnet (Chain ID 1979)
 RPC: https://rpc.ritualfoundation.org
 Deployer: 0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4
 Deploy script: script/Deploy.s.sol
