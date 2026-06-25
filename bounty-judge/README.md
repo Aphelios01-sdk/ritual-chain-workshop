@@ -286,10 +286,10 @@ Rather than over-claiming, here is exactly what this submission does and does no
    (carried over from the workshop) still declares
    `address internal constant LLM_INFERENCE_PRECOMPILE = address(0x0802);`.
    It is **dead code**: `judgeAll()` uses the configurable `LLM_PRECOMPILE`
-   immutable (constructor arg), never the constant. So the *runtime behaviour*
-   is genuinely configurable, but the constant lingers in source. The deployed
-   bytecode was Sourcify-verified **with** this constant present, so removing it
-   now would change the bytecode and break the `exact_match`.
+   immutable (constructor arg, set to `0x0802` on this Ritual deployment),
+   never the constant. So the *runtime behaviour* is genuinely configurable;
+   the constant is retained purely for source parity with the workshop base
+   contract and is harmless.
 
 2. **`IRitualWallet` is retained but unused.** The interface declaration is still
    in `BountyJudge.sol`, but no function references it and the wallet parameter
