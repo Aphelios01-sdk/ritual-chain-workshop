@@ -15,7 +15,7 @@ Fork of [cozfuttu/ritual-chain-workshop](https://github.com/cozfuttu/ritual-chai
 ```bash
 # Run the homework test suite
 cd bounty-judge
-forge test                   # 52/52 passing
+forge test                   # 54/54 passing
 
 # Deploy to Ritual Chain testnet
 cp .env.example .env         # set RITUAL_RPC_URL + DEPLOYER_PRIVATE_KEY
