@@ -344,6 +344,14 @@ Tests mock the LLM precompile at `0x0802` via `vm.etch` with a fallback contract
 | Finalize with out-of-range `winnerIndex` | Revert (`invalid index`) |
 | Cross-account commitment replay | Revert |
 | Cross-bounty commitment replay | Both pass independently |
+| Refund with zero reveals | Owner reclaims reward |
+| Refund blocked when any answer revealed | `NotEligibleForRefund` revert |
+| Refund after finalized | `AlreadyFinalized` revert |
+| MAX_SUBMISSIONS exceeded (51st commit) | `too many submissions` revert |
+| Privacy gate before judge | `getSubmission` returns `""` for answer |
+| Privacy gate after judge | `getSubmission` returns plaintext answer |
+| Judging attestation binding | `answersHash` + `inputHash` match expected values |
+
 
 ---
 
