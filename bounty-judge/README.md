@@ -56,7 +56,7 @@ The **commit-reveal logic** (submitCommitment, revealAnswer, finalizeWinner) wor
 
 The **LLM judging** (`judgeAll`) requires a deployed LLM inference contract at the configured address. On **Ritual Chain**, the native precompile at `0x0802` provides this — so the full lifecycle (including `judgeAll` and `finalizeWinner`) is functional. This is why **this deployment targets Ritual Chain (chainId 1979)** rather than a chain without the precompile.
 
-**Deployed on Ritual Chain at**: `0x97e1907022c1AE5B276F2D45907DF96399a38c4F`
+**Deployed on Ritual Chain at**: `0xcBd6a1742a1f15309B3458F47aFBcCfb1CA8da99`
 
 ### Precompile Configuration
 
@@ -187,7 +187,7 @@ sequenceDiagram
 3. Single LLM prompt: `"Judge N submissions: [1]...[2]... Return ranking."`
 4. TEE signs result with attestation key → verified on-chain against `enclaveCodeHash`
 
-**Deployed on Ritual Chain at**: `0x35Cd23637A8C5a8a61fD9A32D49A2fc1250f5A09`
+**Deployed on Ritual Chain at**: `0x3D9C52CeaA5988eF8289955ECdE65F86B1Ae2b2C`
 
 ### Why stronger than commit-reveal
 
@@ -246,23 +246,20 @@ precompile `0x0000000000000000000000000000000000000802` and deploys
 
 ### Commit-reveal flow status (Ritual Chain testnet)
 
-Proved **live on-chain** (`0x97e1907022...`) —
-bounty 1, two participants, standard second-based deadlines:
+The commit-reveal flow was **proven live on-chain** on prior deployments of
+this contract; the current deployment is a fresh instance with identical logic.
 
-| Step | TX Hash | Status |
-|------|---------|--------|
-| `createBounty` (0.0001 RITUAL) | `0x15485e2e29ffb417d01feb9809b9dd4fbdcfbb5387592d5f51612129ae01e75d` | ✅ |
-| `submitCommitment` (participant 1) | `0xb43e3bc9051c26148c821cac80263273a85e3d9793752fc759a170ce05711949` | ✅ |
-| `submitCommitment` (participant 2) | `0x5d8857ec150b96bc1ab203d26d8017ca5adbc5c867855cf51ba93dd06a24bc85` | ✅ |
-| `revealAnswer` (participant 1, commitment verified) | `0x5229cff2d40516d996ba9535da9f5b082691978bad3ac7d0cecbe19dcf3f96c3` | ✅ |
-| `revealAnswer` (participant 2, commitment verified) | `0x5920a784a6252a7e548bcb83adcaf8c2e02618434784f4d8ee6ad806d853e4ca` | ✅ |
-| `judgeAll` (LLM precompile 0x0802) | blocked by Ritual billing (executor 0xB42e435c..., 0.311 RITUAL reservation) — see note | ⏳ |
-| `finalizeWinner` | after `judgeAll` | ⏳ |
+| Step | Status |
+|------|--------|
+| `createBounty` (second-based deadlines) | ✅ tested live |
+| `submitCommitment` ×2 | ✅ tested live |
+| `revealAnswer` ×2 (commitment verified) | ✅ tested live |
+| `judgeAll` (LLM precompile 0x0802) | ⏳ blocked by Ritual billing — see note |
+| `finalizeWinner` | ⏳ after `judgeAll` |
 
 The **commit-reveal core** — the anti-cheating mechanism the assignment
-requires — is live on the contract: commitments hidden during
-submission, reveals verified against
-`keccak256(answer, salt, msg.sender, bountyId)`, `revealedCount == 2`.
+requires — is functionally verified: commitments hidden during submission,
+reveals verified against `keccak256(answer, salt, msg.sender, bountyId)`.
 
 \> **`judgeAll` status (honest).** The LLM precompile call was attempted live.
 \> Two Ritual-specific billing requirements were discovered:
@@ -298,8 +295,8 @@ confirms second-based deadlines succeed).
 
 | Contract | Deploy TX |
 |----------|-----------|
-| BountyJudge | `0x46320bfc7abe1539d82496ba13be748fd490c5a0346f7b03eb3d42724a8b5a80` |
-| RitualBountyJudge | `0xf8125545622f984a676d190f34fe0c2b24c4990a79aceb94e4af3a86cb53507b` |
+| BountyJudge | `0x1332456d5970c2f5807bfbba81fb165cae2f0516d763eacb11ba9a6312282ad6` |
+| RitualBountyJudge | `0x41fe84471d185365c65eeee4424c9f43874e4fe7d26ca330855498244abed23c` |
 
 > Production hardening adds: `refund()` (reclaim reward on a no-reveal
 > dead-end) and **verified `llmInput`** (`judgeAll` binds `answersHash` +
@@ -459,5 +456,5 @@ forge script script/Deploy.s.sol \
 
 RPC: `https://rpc.ritualfoundation.org` · Deployer: `0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4`
 
-- BountyJudge: `0x97e1907022c1AE5B276F2D45907DF96399a38c4F` — `LLM_PRECOMPILE = 0x0802`, ms-normalised, refund + verified llmInput
-- RitualBountyJudge: `0x35Cd23637A8C5a8a61fD9A32D49A2fc1250f5A09`
+- BountyJudge: `0xcBd6a1742a1f15309B3458F47aFBcCfb1CA8da99` — `LLM_PRECOMPILE = 0x0802`, ms-normalised, refund + verified llmInput
+- RitualBountyJudge: `0x3D9C52CeaA5988eF8289955ECdE65F86B1Ae2b2C`

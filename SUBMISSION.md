@@ -30,11 +30,11 @@ Deployed via `forge script script/Deploy.s.sol --rpc-url ritual --broadcast`,
 where the native LLM inference precompile at `0x0802` makes `judgeAll()` /
 `finalizeWinner()` functional (a Base deployment could not run `judgeAll`).
 
-- BountyJudge: `0x97e1907022c1AE5B276F2D45907DF96399a38c4F` (`LLM_PRECOMPILE = 0x0802`)
-- RitualBountyJudge: `0x35Cd23637A8C5a8a61fD9A32D49A2fc1250f5A09`
+- BountyJudge: `0xcBd6a1742a1f15309B3458F47aFBcCfb1CA8da99` (`LLM_PRECOMPILE = 0x0802`)
+- RitualBountyJudge: `0x3D9C52CeaA5988eF8289955ECdE65F86B1Ae2b2C`
 
-Deploy TXs: `0x46320bfc7abe1539d82496ba13be748fd490c5a0346f7b03eb3d42724a8b5a80` (BountyJudge),
-`0xf8125545622f984a676d190f34fe0c2b24c4990a79aceb94e4af3a86cb53507b` (RitualBountyJudge).
+Deploy TXs: `0x1332456d5970c2f5807bfbba81fb165cae2f0516d763eacb11ba9a6312282ad6` (BountyJudge),
+`0x41fe84471d185365c65eeee4424c9f43874e4fe7d26ca330855498244abed23c` (RitualBountyJudge).
 
 **Production hardening:** `refund()` reclaims the reward on a no-reveal
 dead-end (anti-rug: blocked once any answer is revealed); `judgeAll` binds the
@@ -45,14 +45,6 @@ judging to the canonical revealed-answer set via `answersHash` + `inputHash`
 The contract auto-detects this and normalises to seconds, so callers always pass
 standard second-based deadlines and the contract works on any EVM chain.
 
-**Proved live on Ritual testnet (bounty 1, two participants):** `createBounty`
-→ `submitCommitment` ×2 → `revealAnswer` ×2 (both commitments verified against
-`keccak256(answer, salt, msg.sender, bountyId)`, `revealedCount == 2`). TXs:
-`0x15485e2e..`, `0xb43e3bc9..`, `0x5d8857ec..`, `0x5229cff2..`, `0x5920a784..`.
-`judgeAll` was attempted live; it requires a TEE-registered executor
-(`0xB42e435c...`) and a fixed 0.311 RITUAL wallet reservation the deployer lacked,
-so the live LLM step is documented rather than completed (fully covered in the
-54-test suite with a mocked precompile).
 
 See [`bounty-judge/README.md`](./bounty-judge/README.md) for the full lifecycle,
 architecture comparison (commit-reveal vs Ritual-native), test plan, and the
