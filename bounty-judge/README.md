@@ -314,7 +314,7 @@ confirms second-based deadlines succeed).
 
 | Suite | Tests | Passed |
 |-------|-------|--------|
-| BountyJudgeTest (Track 1) | 40 | 40 ✅ |
+| BountyJudgeTest (Track 1) | 42 | 42 ✅ |
 | RitualBountyJudgeTest (Track 2) | 10 | 10 ✅ |
 | RitualMsTimestampTest (ms normalisation) | 2 | 2 ✅ |
 
@@ -398,15 +398,12 @@ Rather than over-claiming, here is exactly what this submission does and does no
    `block.timestamp` by a few seconds; the deadlines are day-scaled windows so
    this is immaterial in practice, but it is not cryptographically enforced.
 
-5. **`MAX_ANSWER_LENGTH` is checked at reveal, not commit.** The contract
-   cannot check the answer length at commit time (the answer is hidden behind
-   the hash). A participant who commits an answer exceeding 2000 bytes will
-   be unable to reveal it later — their commitment is permanently locked.
-   This is self-correcting in v3: if no other participant reveals, the owner
-   can `refund()` the reward. In a multi-participant bounty the trapped
-   participant simply forfeits eligibility; the remaining revealed answers
-   are judged normally. This is a necessary consequence of the one-way hash
-   property and is explicitly documented as a known trade-off.
+5. **`MAX_ANSWER_LENGTH` was removed from the contract.** The on-chain length
+   check has been deleted from `revealAnswer` to prevent permanently locking
+   participants (a committed answer's hash natural includes its byte length,
+   so revealing a different-length answer fails the hash check regardless).
+   Length enforcement is now a UI/off-chain responsibility. A bounty with
+   zero valid reveals is not a dead-end: the owner can `refund()`.
 
 ---
 
