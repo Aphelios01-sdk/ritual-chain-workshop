@@ -1,390 +1,700 @@
-const abi = [
+const abi =
+[
   {
-    anonymous: false,
-    inputs: [
+    "type": "constructor",
+    "inputs": [
       {
-        indexed: true,
-        internalType: "uint256",
-        name: "bountyId",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "bytes",
-        name: "aiReview",
-        type: "bytes",
-      },
+        "name": "_precompile",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    name: "AllAnswersJudged",
-    type: "event",
+    "stateMutability": "nonpayable"
   },
   {
-    anonymous: false,
-    inputs: [
+    "type": "function",
+    "name": "LLM_PRECOMPILE",
+    "inputs": [],
+    "outputs": [
       {
-        indexed: true,
-        internalType: "uint256",
-        name: "bountyId",
-        type: "uint256",
-      },
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "submissionIndex",
-        type: "uint256",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "submitter",
-        type: "address",
-      },
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    name: "AnswerSubmitted",
-    type: "event",
+    "stateMutability": "view"
   },
   {
-    anonymous: false,
-    inputs: [
+    "type": "function",
+    "name": "MAX_SUBMISSIONS",
+    "inputs": [],
+    "outputs": [
       {
-        indexed: true,
-        internalType: "uint256",
-        name: "bountyId",
-        type: "uint256",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "title",
-        type: "string",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "reward",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "deadline",
-        type: "uint256",
-      },
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    name: "BountyCreated",
-    type: "event",
+    "stateMutability": "view"
   },
   {
-    anonymous: false,
-    inputs: [
+    "type": "function",
+    "name": "bounties",
+    "inputs": [
       {
-        indexed: true,
-        internalType: "uint256",
-        name: "bountyId",
-        type: "uint256",
-      },
-      {
-        indexed: true,
-        internalType: "uint256",
-        name: "winnerIndex",
-        type: "uint256",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "winner",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "reward",
-        type: "uint256",
-      },
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    name: "WinnerFinalized",
-    type: "event",
+    "outputs": [
+      {
+        "name": "owner",
+        "type": "address",
+        "internalType": "address payable"
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "rubric",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "reward",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "submissionDeadline",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "revealDeadline",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "revealedCount",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "judged",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "finalized",
+        "type": "bool",
+        "internalType": "bool"
+      },
+      {
+        "name": "aiReview",
+        "type": "bytes",
+        "internalType": "bytes"
+      },
+      {
+        "name": "winnerIndex",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "phase",
+        "type": "uint8",
+        "internalType": "enum BountyJudge.Phase"
+      },
+      {
+        "name": "answersHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "inputHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
-    inputs: [],
-    name: "MAX_ANSWER_LENGTH",
-    outputs: [
+    "type": "function",
+    "name": "createBounty",
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        "name": "title",
+        "type": "string",
+        "internalType": "string"
       },
+      {
+        "name": "rubric",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "_submissionDeadline",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "_revealDeadline",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "outputs": [
+      {
+        "name": "bountyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "payable"
   },
   {
-    inputs: [],
-    name: "MAX_SUBMISSIONS",
-    outputs: [
+    "type": "function",
+    "name": "finalizeWinner",
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        "name": "bountyId",
+        "type": "uint256",
+        "internalType": "uint256"
       },
+      {
+        "name": "winnerIndex",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    inputs: [
+    "type": "function",
+    "name": "getBountyCore",
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "name": "bountyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    name: "bounties",
-    outputs: [
+    "outputs": [
       {
-        internalType: "address",
-        name: "owner",
-        type: "address",
+        "name": "owner",
+        "type": "address",
+        "internalType": "address"
       },
       {
-        internalType: "string",
-        name: "title",
-        type: "string",
+        "name": "title",
+        "type": "string",
+        "internalType": "string"
       },
       {
-        internalType: "string",
-        name: "rubric",
-        type: "string",
+        "name": "rubric",
+        "type": "string",
+        "internalType": "string"
       },
       {
-        internalType: "uint256",
-        name: "reward",
-        type: "uint256",
+        "name": "reward",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        internalType: "uint256",
-        name: "deadline",
-        type: "uint256",
+        "name": "submissionDeadline",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        internalType: "bool",
-        name: "judged",
-        type: "bool",
+        "name": "revealDeadline",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        internalType: "bool",
-        name: "finalized",
-        type: "bool",
+        "name": "judged",
+        "type": "bool",
+        "internalType": "bool"
       },
       {
-        internalType: "bytes",
-        name: "aiReview",
-        type: "bytes",
+        "name": "finalized",
+        "type": "bool",
+        "internalType": "bool"
       },
       {
-        internalType: "uint256",
-        name: "winnerIndex",
-        type: "uint256",
-      },
+        "name": "phase",
+        "type": "uint8",
+        "internalType": "enum BountyJudge.Phase"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view"
   },
   {
-    inputs: [
+    "type": "function",
+    "name": "getBountyInfo",
+    "inputs": [
       {
-        internalType: "string",
-        name: "title",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "rubric",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "deadline",
-        type: "uint256",
-      },
+        "name": "bountyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    name: "createBounty",
-    outputs: [
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "bountyId",
-        type: "uint256",
+        "name": "participantCount",
+        "type": "uint256",
+        "internalType": "uint256"
       },
+      {
+        "name": "winnerIndex",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "aiReview",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
     ],
-    stateMutability: "payable",
-    type: "function",
+    "stateMutability": "view"
   },
   {
-    inputs: [
+    "type": "function",
+    "name": "getJudgingAttestation",
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "bountyId",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "winnerIndex",
-        type: "uint256",
-      },
+        "name": "bountyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    name: "finalizeWinner",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "outputs": [
+      {
+        "name": "answersHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "inputHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
-    inputs: [
+    "type": "function",
+    "name": "getParticipants",
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "bountyId",
-        type: "uint256",
-      },
+        "name": "bountyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    name: "getBounty",
-    outputs: [
+    "outputs": [
       {
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
-      {
-        internalType: "string",
-        name: "title",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "rubric",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "reward",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "deadline",
-        type: "uint256",
-      },
-      {
-        internalType: "bool",
-        name: "judged",
-        type: "bool",
-      },
-      {
-        internalType: "bool",
-        name: "finalized",
-        type: "bool",
-      },
-      {
-        internalType: "uint256",
-        name: "submissionCount",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "winnerIndex",
-        type: "uint256",
-      },
-      {
-        internalType: "bytes",
-        name: "aiReview",
-        type: "bytes",
-      },
+        "name": "",
+        "type": "address[]",
+        "internalType": "address[]"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view"
   },
   {
-    inputs: [
+    "type": "function",
+    "name": "getRevealedCount",
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "bountyId",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "index",
-        type: "uint256",
-      },
+        "name": "bountyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    name: "getSubmission",
-    outputs: [
+    "outputs": [
       {
-        internalType: "address",
-        name: "submitter",
-        type: "address",
-      },
-      {
-        internalType: "string",
-        name: "answer",
-        type: "string",
-      },
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view"
   },
   {
-    inputs: [
+    "type": "function",
+    "name": "getSubmission",
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "bountyId",
-        type: "uint256",
+        "name": "bountyId",
+        "type": "uint256",
+        "internalType": "uint256"
       },
       {
-        internalType: "bytes",
-        name: "llmInput",
-        type: "bytes",
-      },
+        "name": "participant",
+        "type": "address",
+        "internalType": "address"
+      }
     ],
-    name: "judgeAll",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "outputs": [
+      {
+        "name": "commitment",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "answer",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "revealed",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
-    inputs: [],
-    name: "nextBountyId",
-    outputs: [
+    "type": "function",
+    "name": "judgeAll",
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
+        "name": "bountyId",
+        "type": "uint256",
+        "internalType": "uint256"
       },
+      {
+        "name": "llmInput",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
-    inputs: [
+    "type": "function",
+    "name": "nextBountyId",
+    "inputs": [],
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "bountyId",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "answer",
-        type: "string",
-      },
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
     ],
-    name: "submitAnswer",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "view"
   },
-] as const;
-
+  {
+    "type": "function",
+    "name": "refund",
+    "inputs": [
+      {
+        "name": "bountyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "revealAnswer",
+    "inputs": [
+      {
+        "name": "bountyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "answer",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "salt",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "submitCommitment",
+    "inputs": [
+      {
+        "name": "bountyId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "commitment",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "AllAnswersJudged",
+    "inputs": [
+      {
+        "name": "bountyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "aiReview",
+        "type": "bytes",
+        "indexed": false,
+        "internalType": "bytes"
+      },
+      {
+        "name": "answersHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "inputHash",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AnswerRevealed",
+    "inputs": [
+      {
+        "name": "bountyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "participant",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BountyCreated",
+    "inputs": [
+      {
+        "name": "bountyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "title",
+        "type": "string",
+        "indexed": false,
+        "internalType": "string"
+      },
+      {
+        "name": "reward",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "submissionDeadline",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "revealDeadline",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "CommitmentSubmitted",
+    "inputs": [
+      {
+        "name": "bountyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "participant",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "commitment",
+        "type": "bytes32",
+        "indexed": false,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "RefundClaimed",
+    "inputs": [
+      {
+        "name": "bountyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "owner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WinnerFinalized",
+    "inputs": [
+      {
+        "name": "bountyId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "winnerIndex",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "winner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "reward",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "error",
+    "name": "AlreadyFinalized",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AlreadyJudged",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AlreadyRevealed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AlreadySubmitted",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BountyNotFound",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidCommitment",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidWinnerIndex",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoSubmissions",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotEligibleForRefund",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotJudged",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotOwner",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NotSubmitted",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PaymentFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "RevealDeadlinePassed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StillInSubmission",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SubmissionDeadlinePassed",
+    "inputs": []
+  }
+]
 export default abi;

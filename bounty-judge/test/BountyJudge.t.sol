@@ -184,6 +184,23 @@ contract BountyJudgeTest is Test {
         judge.submitCommitment(bountyId, bytes32(uint256(0x1)));
     }
 
+    function testMaxSubmissionsCap() public {
+        // Fill up to MAX_SUBMISSIONS (50) — all must succeed.
+        for (uint256 i = 0; i < 50; i++) {
+            address participant = address(uint160(uint256(keccak256(abi.encodePacked(i)))));
+            bytes32 c = keccak256(abi.encodePacked("ans", bytes32(i), participant, bountyId));
+            vm.prank(participant);
+            judge.submitCommitment(bountyId, c);
+        }
+        assertEq(judge.getParticipants(bountyId).length, 50);
+
+        // 51st must revert.
+        address extra = address(0xFFFF);
+        vm.prank(extra);
+        vm.expectRevert("too many submissions");
+        judge.submitCommitment(bountyId, bytes32(uint256(0x1)));
+    }
+
     function testCommitToNonexistentBounty() public {
         vm.prank(ALICE);
         vm.expectRevert(BountyJudge.BountyNotFound.selector);
@@ -199,8 +216,9 @@ contract BountyJudgeTest is Test {
         vm.prank(ALICE);
         judge.revealAnswer(bountyId, "the secret", SALT_A);
 
+        // Privacy gate: answer hidden until judged (assignment requirement).
         (, string memory answer, bool revealed) = judge.getSubmission(bountyId, ALICE);
-        assertEq(answer, "the secret");
+        assertEq(answer, "", "answer hidden until judged");
         assertTrue(revealed);
     }
 
@@ -211,8 +229,9 @@ contract BountyJudgeTest is Test {
         vm.prank(BOB);
         judge.revealAnswer(bountyId, "bob answer", SALT_B);
 
+        // Privacy gate: answer hidden until judged.
         (, string memory answer, bool revealed) = judge.getSubmission(bountyId, BOB);
-        assertEq(answer, "bob answer");
+        assertEq(answer, "", "answer hidden until judged");
         assertTrue(revealed);
     }
 
@@ -272,12 +291,14 @@ contract BountyJudgeTest is Test {
     }
 
     function testRevealAnswerTooLong() public {
+        // MAX_ANSWER_LENGTH check removed from contract (moved to UI).
+        // Commitment for "short" won't match reveal of a 2001-char string -> hash mismatch.
         commit(ALICE, "short", SALT_A);
         warpToReveal();
 
-        string memory longAnswer = new string(2001); // > MAX_ANSWER_LENGTH
+        string memory longAnswer = new string(2001);
         vm.prank(ALICE);
-        vm.expectRevert("answer too long");
+        vm.expectRevert("invalid commitment");
         judge.revealAnswer(bountyId, longAnswer, SALT_A);
     }
 
@@ -356,6 +377,32 @@ contract BountyJudgeTest is Test {
         (bytes32 answersHash, bytes32 inputHash) = judge.getJudgingAttestation(bountyId);
         assertEq(answersHash, expectedAnswers, "answersHash bound to revealed set");
         assertEq(inputHash, keccak256(llmPrompt), "inputHash bound to submitted prompt");
+    }
+
+    function testPrivacyGateHidesAnswerUntilJudged() public {
+        commit(ALICE, "A answer", SALT_A);
+        commit(BOB,   "B answer", SALT_B);
+        warpToReveal();
+        vm.prank(ALICE); judge.revealAnswer(bountyId, "A answer", SALT_A);
+        vm.prank(BOB);   judge.revealAnswer(bountyId, "B answer", SALT_B);
+
+        // Before judging: getSubmission MUST return "" for the answer (privacy gate).
+        (, string memory answerA, bool revealedA) = judge.getSubmission(bountyId, ALICE);
+        (, string memory answerB, bool revealedB) = judge.getSubmission(bountyId, BOB);
+        assertEq(answerA, "", "answer hidden until judged (Alice)");
+        assertEq(answerB, "", "answer hidden until judged (Bob)");
+        assertTrue(revealedA);
+        assertTrue(revealedB);
+
+        // After judging: answers are visible.
+        warpPastReveal();
+        vm.prank(OWNER);
+        judge.judgeAll(bountyId, bytes("Rubric + answers"));
+
+        (, string memory answerA2, ) = judge.getSubmission(bountyId, ALICE);
+        (, string memory answerB2, ) = judge.getSubmission(bountyId, BOB);
+        assertEq(answerA2, "A answer", "answer visible after judged");
+        assertEq(answerB2, "B answer", "answer visible after judged");
     }
 
     function testJudgeAllNonOwner() public {

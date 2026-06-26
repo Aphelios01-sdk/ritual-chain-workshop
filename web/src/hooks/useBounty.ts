@@ -6,31 +6,35 @@ import { contractAddress, isContractConfigured } from "@/config/contract";
 import { ritualChain } from "@/config/wagmi";
 import { parseBounty, type Bounty } from "@/lib/bounty";
 
-/** Read + parse a single bounty, polling so status flips as the deadline passes. */
 export function useBounty(bountyId?: bigint) {
   const enabled = bountyId !== undefined && isContractConfigured;
 
-  const query = useReadContract({
+  const core = useReadContract({
     address: contractAddress,
     abi: aiJudgeAbi,
-    functionName: "getBounty",
+    functionName: "getBountyCore",
     args: bountyId !== undefined ? [bountyId] : undefined,
     chainId: ritualChain.id,
-    query: {
-      enabled,
-      refetchInterval: 12_000,
-    },
+    query: { enabled, refetchInterval: 12_000 },
   });
 
-  const bounty: Bounty | undefined = query.data
-    ? parseBounty(query.data)
-    : undefined;
+  const info = useReadContract({
+    address: contractAddress,
+    abi: aiJudgeAbi,
+    functionName: "getBountyInfo",
+    args: bountyId !== undefined ? [bountyId] : undefined,
+    chainId: ritualChain.id,
+    query: { enabled, refetchInterval: 12_000 },
+  });
+
+  const bounty: Bounty | undefined =
+    core.data && info.data ? parseBounty(core.data as Parameters<typeof parseBounty>[0], info.data as Parameters<typeof parseBounty>[1]) : undefined;
 
   return {
     bounty,
-    isLoading: query.isLoading,
-    isError: query.isError,
-    error: query.error,
-    refetch: query.refetch,
+    isLoading: core.isLoading || info.isLoading,
+    isError: core.isError || info.isError,
+    error: core.error || info.error,
+    refetch: () => { core.refetch(); info.refetch(); },
   };
 }

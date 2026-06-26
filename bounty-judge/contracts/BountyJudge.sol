@@ -61,7 +61,7 @@ abstract contract PrecompileConsumer {
  */
 contract BountyJudge is PrecompileConsumer {
     // ────────────── Constants ──────────────
-    uint256 public constant MAX_ANSWER_LENGTH = 2_000;
+    uint256 public constant MAX_SUBMISSIONS = 50;
 
     // ────────────── Errors ──────────────
     error NotOwner();
@@ -117,6 +117,15 @@ contract BountyJudge is PrecompileConsumer {
     // ────────────── State ──────────────
     uint256 public nextBountyId = 1;
     mapping(uint256 => Bounty) public bounties;
+
+    // Reentrancy guard (zero-dependency)
+    uint256 private _lock = 1;
+    modifier nonReentrant() {
+        require(_lock == 1, "reentrant");
+        _lock = 2;
+        _;
+        _lock = 1;
+    }
 
     // LLM inference precompile — configurable per deployment
     // On Ritual Chain: 0x0802. On other EVM chains: an equivalent LLM contract address.
@@ -243,6 +252,7 @@ contract BountyJudge is PrecompileConsumer {
         require(b.phase == Phase.SUBMISSION, "not in submission");
         require(_now() <= b.submissionDeadline, "submission deadline passed");
         require(b.submissions[msg.sender].commitment == bytes32(0), "already submitted");
+        require(b.participants.length < MAX_SUBMISSIONS, "too many submissions");
 
         b.submissions[msg.sender].commitment = commitment;
         b.participants.push(msg.sender);
@@ -280,7 +290,6 @@ contract BountyJudge is PrecompileConsumer {
         Submission storage sub = b.submissions[msg.sender];
         require(sub.commitment != bytes32(0), "no commitment");
         require(!sub.revealed, "already revealed");
-        require(bytes(answer).length <= MAX_ANSWER_LENGTH, "answer too long");
 
         // Auto-advance phase
         if (b.phase == Phase.SUBMISSION) {
@@ -381,6 +390,7 @@ contract BountyJudge is PrecompileConsumer {
     ///          participants) — in that case the owner must judge + finalize.
     function refund(uint256 bountyId)
         external
+        nonReentrant
         bountyExists(bountyId)
         onlyOwner(bountyId)
     {
@@ -412,6 +422,7 @@ contract BountyJudge is PrecompileConsumer {
      */
     function finalizeWinner(uint256 bountyId, uint256 winnerIndex)
         external
+        nonReentrant
         bountyExists(bountyId)
         onlyOwner(bountyId)
     {
@@ -509,7 +520,11 @@ contract BountyJudge is PrecompileConsumer {
     }
 
     /**
-     * @notice  Get one participant's submission.
+     * @notice  Get one participant's submission. The plaintext answer is
+     *          hidden until the bounty is judged (to satisfy the assignment
+     *          requirement "answers remain hidden until judging is complete").
+     *          Before judging, `answer` returns an empty string even after a
+     *          valid reveal; only the `revealed` flag is visible.
      */
     function getSubmission(uint256 bountyId, address participant)
         external
@@ -521,7 +536,9 @@ contract BountyJudge is PrecompileConsumer {
         )
     {
         Submission storage sub = bounties[bountyId].submissions[participant];
-        return (sub.commitment, sub.answer, sub.revealed);
+        bool judged = bounties[bountyId].judged;
+        string memory visibleAnswer = judged ? sub.answer : "";
+        return (sub.commitment, visibleAnswer, sub.revealed);
     }
 
     /**

@@ -30,7 +30,7 @@ TX Hash: 0xf8125545622f984a676d190f34fe0c2b24c4990a79aceb94e4af3a86cb53507b
 Constructor: none
 
 --- Tests ---
-52 passing (40 BountyJudge + 10 RitualBountyJudge + 2 RitualMsTimestamp),
+54 passing (42 BountyJudge + 10 RitualBountyJudge + 2 RitualMsTimestamp),
 covering refund (5 cases) + judging attestation binding (1 case).
 
 --- Commit-reveal proven live on v3 (bounty 1, two participants) ---

@@ -2,6 +2,7 @@
 out/
 cache/
 broadcast/
+*.log
 
 # Secrets
 .env

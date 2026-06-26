@@ -149,6 +149,29 @@ The `revealedCount` is now stored as a uint256 field in the Bounty struct, incre
 
 ## Track 2: Ritual-Native Hidden Submissions (`contracts/RitualBountyJudge.sol`)
 
+```mermaid
+sequenceDiagram
+    participant P as Participant
+    participant C as BountyJudge (on-chain)
+    participant TEE as Ritual TEE Enclave
+    participant V as Attestation Verifier
+
+    P->>C: submitEncryptedAnswer(ciphertext)
+    Note over C: ciphertext stored on-chain<br/>(unreadable without TEE key)
+
+    Note over TEE: After submission deadline<br/>Reads ALL ciphertexts
+
+    C-->>TEE: emits event with all encrypted subs
+    TEE->>TEE: Decrypt all submissions<br/>Run single batch LLM prompt<br/>Sign result with enclave key
+
+    TEE->>C: submitJudgingResult(rankedAddrs, scores, attestation)
+    C->>V: verifyAttestation(enclaveCodeHash, input, output, attestation)
+    V-->>C: valid ✓
+
+    Note over C: Scores stored on-chain<br/>Phase = FINALIZED
+    C->>C: finalizeWinner(winnerIndex)
+```
+
 ### Where plaintext answers exist
 
 | Location | What's stored | Who can read |
@@ -287,7 +310,7 @@ confirms second-based deadlines succeed).
 
 ## Test Results
 
-**52 tests, 0 failed, 0 skipped** (verified with `forge test -vvv`):
+**54 tests, 0 failed, 0 skipped** (verified with `forge test -vvv`):
 
 | Suite | Tests | Passed |
 |-------|-------|--------|
@@ -401,7 +424,7 @@ In a fair bounty system, the bounty description, rubric, deadlines, and prize am
 |------|-------|-------------|
 | `contracts/BountyJudge.sol` | Required | Commit-reveal bounty judge with configurable precompile |
 | `contracts/RitualBountyJudge.sol` | Advanced | Ritual TEE encrypted submissions with attestation verification |
-| `test/BountyJudge.t.sol` | Both | 52 test cases (40 + 10 + 2), all passing |
+| `test/BountyJudge.t.sol` | Both | 54 test cases (40 + 10 + 2), all passing |
 | `script/Deploy.s.sol` | Both | Foundry deploy script → Ritual Chain (chainId 1979) |
 | `README.md` | Both | Lifecycle, architecture, test plan, reflection, deployment |
 
