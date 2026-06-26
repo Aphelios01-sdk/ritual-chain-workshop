@@ -272,7 +272,7 @@ submission, reveals verified against
 \>    the deployer wallet needs pre-funding via the Ritual testnet faucet.
 \>    The contract path is correct (verified against the workshop's request
 \>    encoding and the same output decode rivaleuc uses).
-\> `judgeAll`/`finalizeWinner` are fully exercised in the 52-test suite
+\> `judgeAll`/`finalizeWinner` are fully exercised in the 54-test suite
 \> with a mocked precompile.
 
 > On Ritual Chain every step is functional, including `judgeAll` (LLM precompile)

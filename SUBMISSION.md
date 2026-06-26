@@ -45,14 +45,14 @@ judging to the canonical revealed-answer set via `answersHash` + `inputHash`
 The contract auto-detects this and normalises to seconds, so callers always pass
 standard second-based deadlines and the contract works on any EVM chain.
 
-**Proved live on Ritual testnet (bounty 2, two participants):** `createBounty`
+**Proved live on Ritual testnet (bounty 1, two participants):** `createBounty`
 → `submitCommitment` ×2 → `revealAnswer` ×2 (both commitments verified against
 `keccak256(answer, salt, msg.sender, bountyId)`, `revealedCount == 2`). TXs:
-`0x05a19b02..`, `0x2e50ef72..`, `0xcd78b357..`, `0xb51211e6..`, `0x6e692a3a..`.
+`0x15485e2e..`, `0xb43e3bc9..`, `0x5d8857ec..`, `0x5229cff2..`, `0x5920a784..`.
 `judgeAll` was attempted live; it requires a TEE-registered executor
 (`0xB42e435c...`) and a fixed 0.311 RITUAL wallet reservation the deployer lacked,
 so the live LLM step is documented rather than completed (fully covered in the
-46-test suite with a mocked precompile).
+54-test suite with a mocked precompile).
 
 See [`bounty-judge/README.md`](./bounty-judge/README.md) for the full lifecycle,
 architecture comparison (commit-reveal vs Ritual-native), test plan, and the
