@@ -367,7 +367,7 @@ Per homework spec. Combined with sender + bountyId, prevents cross-account and c
 
 - **Commit-reveal integrity**: Participants cannot change answers after committing. Others cannot copy commitments (bound to `msg.sender` + `bountyId`).
 - **LLM integrity**: On Ritual Chain, the LLM inference runs on native precompile — deterministic given same input.
-- **Reward safety**: Checks-effects-interactions pattern. State updated before ETH transfer.
+- **Reward safety**: Checks-effects-interactions pattern. State updated before RITUAL transfer.
 - **Access control**: Only bounty owner can call `judgeAll` and `finalizeWinner`.
 
 ### Technical honesty notes (known imperfections)
@@ -390,7 +390,7 @@ Rather than over-claiming, here is exactly what this submission does and does no
 3. **Track 2 is a design sketch.** `RitualBountyJudge` demonstrates the
    TEE-attested flow (encrypted submit → batch judging → attestation verify →
    finalize) but intentionally omits reward escrow/payout: `finalizeWinner()`
-   locks the winner index without transferring ETH. This matches the rule that
+   locks the winner index without transferring RITUAL. This matches the rule that
    the advanced track may be a design document.
 
 4. **`block.timestamp`-based deadlines.** Validators can nudge
@@ -420,7 +420,7 @@ In a fair bounty system, the bounty description, rubric, deadlines, and prize am
 |------|-------|-------------|
 | `contracts/BountyJudge.sol` | Required | Commit-reveal bounty judge with configurable precompile |
 | `contracts/RitualBountyJudge.sol` | Advanced | Ritual TEE encrypted submissions with attestation verification |
-| `test/BountyJudge.t.sol` | Both | 54 test cases (40 + 10 + 2), all passing |
+| `test/BountyJudge.t.sol` | Both | 54 test cases (42 + 10 + 2), all passing |
 | `script/Deploy.s.sol` | Both | Foundry deploy script → Ritual Chain (chainId 1979) |
 | `README.md` | Both | Lifecycle, architecture, test plan, reflection, deployment |
 
