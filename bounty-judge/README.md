@@ -351,6 +351,7 @@ Tests mock the LLM precompile at `0x0802` via `vm.etch` with a fallback contract
 | Privacy gate before judge | `getSubmission` returns `""` for answer |
 | Privacy gate after judge | `getSubmission` returns plaintext answer |
 | Judging attestation binding | `answersHash` + `inputHash` match expected values |
+| Reentrancy guard (refund/finalize) | Revert "reentrant" |
 
 
 ---
