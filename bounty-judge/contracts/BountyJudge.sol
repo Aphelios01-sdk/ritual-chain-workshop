@@ -101,6 +101,7 @@ contract BountyJudge is PrecompileConsumer {
     error InvalidWinnerIndex();
     error PaymentFailed();
     error BountyNotFound();
+    error NotEligibleForRefund();
 
     // ────────────── Enums ──────────────
     enum Phase {
@@ -129,6 +130,8 @@ contract BountyJudge is PrecompileConsumer {
         bytes   aiReview;             // raw output from LLM precompile
         uint256 winnerIndex;
         Phase   phase;
+        bytes32 answersHash;          // hash of rubric + revealed answers, bound at judgeAll
+        bytes32 inputHash;            // keccak256(llmInput), bound at judgeAll
         mapping(address => Submission) submissions;
         address[] participants;       // ordered array — index = position
     }
@@ -174,7 +177,14 @@ contract BountyJudge is PrecompileConsumer {
     );
     event AllAnswersJudged(
         uint256 indexed bountyId,
-        bytes   aiReview
+        bytes   aiReview,
+        bytes32 answersHash,
+        bytes32 inputHash
+    );
+    event RefundClaimed(
+        uint256 indexed bountyId,
+        address indexed owner,
+        uint256 amount
     );
     event WinnerFinalized(
         uint256 indexed bountyId,
@@ -323,6 +333,15 @@ contract BountyJudge is PrecompileConsumer {
      *          The precompile (0x0802) executes synchronously and returns
      *          the AI judge's ranking/review as aiReview bytes.
      *
+     *          INPUT INTEGRITY: the contract binds this judging call to the
+     *          exact revealed answer set by recomputing `answersHash` from the
+     *          rubric + every revealed (participant, answer) in participant
+     *          order, and records `inputHash = keccak256(llmInput)`. Both are
+     *          stored + emitted so anyone can audit that the prompt the owner
+     *          submitted (reconstructable from the tx calldata) actually
+     *          corresponds to the canonical revealed answers — making a
+     *          tampered / answer-swapping prompt detectable off-chain.
+     *
      * @param   bountyId  ID of the bounty.
      * @param   llmInput  Full LLM prompt bytes (rubric + assembled answers).
      */
@@ -344,6 +363,12 @@ contract BountyJudge is PrecompileConsumer {
         uint256 revealedCount = b.revealedCount;
         require(revealedCount > 0, "no revealed submissions");
 
+        // Bind this judging call to the canonical revealed-answer set (auditability).
+        bytes32 answersHash = _hashRevealedAnswers(b);
+        bytes32 inputHash = keccak256(llmInput);
+        b.answersHash = answersHash;
+        b.inputHash = inputHash;
+
         // Call Ritual's LLM inference precompile
         bytes memory output = _executePrecompile(
             LLM_PRECOMPILE,
@@ -353,7 +378,49 @@ contract BountyJudge is PrecompileConsumer {
         b.judged       = true;
         b.aiReview     = output;
 
-        emit AllAnswersJudged(bountyId, output);
+        emit AllAnswersJudged(bountyId, output, answersHash, inputHash);
+    }
+
+    /// @dev Canonical hash over the rubric + every revealed (participant, answer),
+    ///      in participant-array order. Pins exactly what the judging must cover.
+    function _hashRevealedAnswers(Bounty storage b) internal view returns (bytes32) {
+        bytes memory bundle = abi.encode(b.rubric);
+        address[] storage parts = b.participants;
+        for (uint256 i = 0; i < parts.length; i++) {
+            Submission storage sub = b.submissions[parts[i]];
+            if (sub.revealed) {
+                bundle = abi.encodePacked(bundle, parts[i], sub.answer);
+            }
+        }
+        return keccak256(bundle);
+    }
+
+    /// @notice  Owner reclaims the locked reward when the bounty is a dead-end:
+    ///          i.e. the reveal window closed with ZERO valid reveals, so there
+    ///          is nobody eligible to be judged or paid. Prevents funds being
+    ///          locked forever. Refunds are intentionally NOT allowed once any
+    ///          answer has been revealed (that would let the owner rug valid
+    ///          participants) — in that case the owner must judge + finalize.
+    function refund(uint256 bountyId)
+        external
+        bountyExists(bountyId)
+        onlyOwner(bountyId)
+    {
+        Bounty storage b = bounties[bountyId];
+
+        if (b.judged || b.finalized) revert AlreadyFinalized();
+        if (_now() <= b.revealDeadline) revert RevealDeadlinePassed();
+        if (b.revealedCount != 0) revert NotEligibleForRefund();
+
+        b.finalized = true;
+        b.phase = Phase.FINALIZED;
+        uint256 reward = b.reward;
+        b.reward = 0;
+
+        (bool ok, ) = payable(msg.sender).call{value: reward}("");
+        require(ok, "refund failed");
+
+        emit RefundClaimed(bountyId, msg.sender, reward);
     }
 
     // ────────────── Finalize ──────────────
@@ -445,6 +512,22 @@ contract BountyJudge is PrecompileConsumer {
             b.winnerIndex,
             b.aiReview
         );
+    }
+
+    /**
+     * @notice  Judging integrity attestation, set at judgeAll().
+     *          `answersHash` = keccak over rubric + revealed (participant, answer)
+     *          in order; `inputHash` = keccak256(llmInput). Together they let
+     *          anyone verify the judged prompt matches the canonical answers.
+     */
+    function getJudgingAttestation(uint256 bountyId)
+        external
+        view
+        bountyExists(bountyId)
+        returns (bytes32 answersHash, bytes32 inputHash)
+    {
+        Bounty storage b = bounties[bountyId];
+        return (b.answersHash, b.inputHash);
     }
 
     /**

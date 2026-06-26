@@ -56,7 +56,7 @@ The **commit-reveal logic** (submitCommitment, revealAnswer, finalizeWinner) wor
 
 The **LLM judging** (`judgeAll`) requires a deployed LLM inference contract at the configured address. On **Ritual Chain**, the native precompile at `0x0802` provides this — so the full lifecycle (including `judgeAll` and `finalizeWinner`) is functional. This is why **this deployment targets Ritual Chain (chainId 1979)** rather than a chain without the precompile.
 
-**Deployed on Ritual Chain at**: `0x2B75AE3b7F6522ED66BE4Df1432E2a283058cef0`
+**Deployed on Ritual Chain at**: `0x97e1907022c1AE5B276F2D45907DF96399a38c4F`
 
 ### Precompile Configuration
 
@@ -113,6 +113,34 @@ from it**. The owner reads `aiReview` off-chain and manually picks the winner
 index in `finalizeWinner()`. This deliberately avoids auto-paying from
 unvalidated AI output (per the homework constraint) while keeping a human veto.
 
+### Production hardening (v3)
+
+Two production-grade guarantees added on top of the commit-reveal core:
+
+**1. Refund — no locked funds.** If the reveal window closes with **zero
+valid reveals** (a dead-end bounty), the owner can call `refund(bountyId)` to
+reclaim the reward. Refunds are blocked once any answer has been revealed —
+that would let the owner rug valid participants, so in that case the owner must
+`judgeAll()` + `finalizeWinner()` instead.
+
+```solidity
+function refund(uint256 bountyId) external onlyOwner(bountyId) {
+    if (b.judged || b.finalized) revert AlreadyFinalized();
+    if (_now() <= b.revealDeadline) revert RevealDeadlinePassed();
+    if (b.revealedCount != 0) revert NotEligibleForRefund();   // anti-rug
+    b.finalized = true; b.reward = 0;
+    payable(msg.sender).call{value: reward}("");
+}
+```
+
+**2. Verified `llmInput` — judging bound to the real answers.** `judgeAll()`
+recomputes `answersHash = keccak256(rubric + each revealed (participant, answer)
+in order)` and stores it alongside `inputHash = keccak256(llmInput)`, emitting
+both. Anyone can then audit that the prompt the owner submitted (reconstructable
+from the tx calldata) actually corresponds to the canonical revealed answers —
+a tampered or answer-swapping prompt is detectable off-chain. Read via
+`getJudgingAttestation(bountyId)`.
+
 ### Optimization: revealedCount O(1)
 
 The `revealedCount` is now stored as a uint256 field in the Bounty struct, incremented on each valid reveal. Previously this was an O(n) loop over all participants. The `getRevealedCount()` function now returns the stored field directly.
@@ -136,7 +164,7 @@ The `revealedCount` is now stored as a uint256 field in the Bounty struct, incre
 3. Single LLM prompt: `"Judge N submissions: [1]...[2]... Return ranking."`
 4. TEE signs result with attestation key → verified on-chain against `enclaveCodeHash`
 
-**Deployed on Ritual Chain at**: `0x4a8358919c82562489D0ca7ae3b22C6089DC8Ca6`
+**Deployed on Ritual Chain at**: `0x35Cd23637A8C5a8a61fD9A32D49A2fc1250f5A09`
 
 ### Why stronger than commit-reveal
 
@@ -250,18 +278,23 @@ confirms second-based deadlines succeed).
 
 | Contract | Deploy TX |
 |----------|-----------|
-| BountyJudge v2 | `0x4072ca96441010fd013a18f52d5055f4351fb692209397468e995e10b7ad4753` |
-| RitualBountyJudge | `0x174c95e124137225ba8469c176ac007632272fb45c9ffebb3239b8615212fd32` |
+| BountyJudge v3 | `0x46320bfc7abe1539d82496ba13be748fd490c5a0346f7b03eb3d42724a8b5a80` |
+| RitualBountyJudge | `0xf8125545622f984a676d190f34fe0c2b24c4990a79aceb94e4af3a86cb53507b` |
+
+> v3 hardens v2 for production: adds `refund()` (reclaim reward on a no-reveal
+> dead-end) and **verified `llmInput`** (`judgeAll` binds `answersHash` +
+> `inputHash` to the canonical revealed-answer set). The earlier live commit-
+> reveal proof was on the v2 contract; the commit/reveal logic is unchanged in v3.
 
 ---
 
 ## Test Results
 
-**46 tests, 0 failed, 0 skipped** (verified with `forge test -vvv`):
+**52 tests, 0 failed, 0 skipped** (verified with `forge test -vvv`):
 
 | Suite | Tests | Passed |
 |-------|-------|--------|
-| BountyJudgeTest (Track 1) | 34 | 34 ✅ |
+| BountyJudgeTest (Track 1) | 40 | 40 ✅ |
 | RitualBountyJudgeTest (Track 2) | 10 | 10 ✅ |
 | RitualMsTimestampTest (ms normalisation) | 2 | 2 ✅ |
 
@@ -376,7 +409,7 @@ In a fair bounty system, the bounty description, rubric, deadlines, and prize am
 |------|-------|-------------|
 | `contracts/BountyJudge.sol` | Required | Commit-reveal bounty judge with configurable precompile |
 | `contracts/RitualBountyJudge.sol` | Advanced | Ritual TEE encrypted submissions with attestation verification |
-| `test/BountyJudge.t.sol` | Both | 46 test cases (34 + 10 + 2), all passing |
+| `test/BountyJudge.t.sol` | Both | 52 test cases (40 + 10 + 2), all passing |
 | `script/Deploy.s.sol` | Both | Foundry deploy script → Ritual Chain (chainId 1979) |
 | `README.md` | Both | Lifecycle, architecture, test plan, reflection, deployment |
 
@@ -406,5 +439,5 @@ forge script script/Deploy.s.sol \
 
 RPC: `https://rpc.ritualfoundation.org` · Deployer: `0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4`
 
-- BountyJudge v2: `0x2B75AE3b7F6522ED66BE4Df1432E2a283058cef0` — `LLM_PRECOMPILE = 0x0802`, ms-timestamp normalised
-- RitualBountyJudge: `0x4a8358919c82562489D0ca7ae3b22C6089DC8Ca6`
+- BountyJudge v3: `0x97e1907022c1AE5B276F2D45907DF96399a38c4F` — `LLM_PRECOMPILE = 0x0802`, ms-normalised, refund + verified llmInput
+- RitualBountyJudge: `0x35Cd23637A8C5a8a61fD9A32D49A2fc1250f5A09`

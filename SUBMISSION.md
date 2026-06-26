@@ -10,7 +10,7 @@ self-contained Foundry project (forge-std vendored, no submodule init needed).
 
 ```bash
 cd bounty-judge
-forge test            # 46/46 passing (forge build && forge test -vvv)
+forge test            # 52/52 passing (forge build && forge test -vvv)
 ```
 
 ## Files
@@ -19,7 +19,7 @@ forge test            # 46/46 passing (forge build && forge test -vvv)
 |------|-------|---------|
 | `bounty-judge/contracts/BountyJudge.sol` | Required (Track 1) | Commit-reveal bounty judge, configurable LLM precompile |
 | `bounty-judge/contracts/RitualBountyJudge.sol` | Advanced (Track 2) | Ritual TEE encrypted submissions + attestation verify |
-| `bounty-judge/test/BountyJudge.t.sol` | Both | 46 tests (34 + 10 + 2), all passing |
+| `bounty-judge/test/BountyJudge.t.sol` | Both | 52 tests (40 + 10 + 2), all passing |
 | `bounty-judge/script/Deploy.s.sol` | Both | Foundry deploy script → Ritual Chain (chainId 1979) |
 | `bounty-judge/README.md` | Both | Lifecycle, architecture, honesty notes, reflection |
 | `bounty-judge/.deploy-info.txt` | — | Deploy addresses + TX hashes on Ritual Chain |
@@ -30,11 +30,16 @@ Deployed via `forge script script/Deploy.s.sol --rpc-url ritual --broadcast`,
 where the native LLM inference precompile at `0x0802` makes `judgeAll()` /
 `finalizeWinner()` functional (a Base deployment could not run `judgeAll`).
 
-- BountyJudge v2: `0x2B75AE3b7F6522ED66BE4Df1432E2a283058cef0` (`LLM_PRECOMPILE = 0x0802`)
-- RitualBountyJudge: `0x4a8358919c82562489D0ca7ae3b22C6089DC8Ca6`
+- BountyJudge v3: `0x97e1907022c1AE5B276F2D45907DF96399a38c4F` (`LLM_PRECOMPILE = 0x0802`)
+- RitualBountyJudge: `0x35Cd23637A8C5a8a61fD9A32D49A2fc1250f5A09`
 
-Deploy TXs: `0x4072ca96441010fd013a18f52d5055f4351fb692209397468e995e10b7ad4753` (BountyJudge),
-`0x174c95e124137225ba8469c176ac007632272fb45c9ffebb3239b8615212fd32` (RitualBountyJudge).
+Deploy TXs: `0x46320bfc7abe1539d82496ba13be748fd490c5a0346f7b03eb3d42724a8b5a80` (BountyJudge),
+`0xf8125545622f984a676d190f34fe0c2b24c4990a79aceb94e4af3a86cb53507b` (RitualBountyJudge).
+
+**v3 production hardening:** `refund()` reclaims the reward on a no-reveal
+dead-end (anti-rug: blocked once any answer is revealed); `judgeAll` binds the
+judging to the canonical revealed-answer set via `answersHash` + `inputHash`
+(verified llmInput — tampered prompts are detectable off-chain).
 
 **Ritual ms-timestamp quirk:** Ritual reports `block.timestamp` in milliseconds.
 The contract auto-detects this and normalises to seconds, so callers always pass

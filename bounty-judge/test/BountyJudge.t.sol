@@ -323,7 +323,7 @@ contract BountyJudgeTest is Test {
 
         vm.prank(OWNER);
         vm.expectEmit(true, false, false, false);
-        emit BountyJudge.AllAnswersJudged(bountyId, bytes(""));
+        emit BountyJudge.AllAnswersJudged(bountyId, bytes(""), bytes32(0), bytes32(0));
         judge.judgeAll(bountyId, llmPrompt);
 
         (,,,,,, bool judged, bool finalized,) = judge.getBountyCore(bountyId);
@@ -331,6 +331,31 @@ contract BountyJudgeTest is Test {
         assertTrue(judged);
         assertFalse(finalized);
         assertTrue(aiReview.length > 0);
+    }
+
+    function testJudgeAllBindsAnswersHashAndInputHash() public {
+        commit(ALICE, "A answer", SALT_A);
+        commit(BOB,   "B answer", SALT_B);
+        warpToReveal();
+        vm.prank(ALICE); judge.revealAnswer(bountyId, "A answer", SALT_A);
+        vm.prank(BOB);   judge.revealAnswer(bountyId, "B answer", SALT_B);
+        warpPastReveal();
+
+        bytes memory llmPrompt = bytes("Rubric + A answer + B answer");
+        vm.prank(OWNER);
+        judge.judgeAll(bountyId, llmPrompt);
+
+        // Recompute the canonical answers hash the same way the contract does.
+        bytes32 expectedAnswers = keccak256(
+            abi.encodePacked(
+                abi.encode("Evaluate correctness, gas efficiency, and code clarity."),
+                ALICE, "A answer",
+                BOB,   "B answer"
+            )
+        );
+        (bytes32 answersHash, bytes32 inputHash) = judge.getJudgingAttestation(bountyId);
+        assertEq(answersHash, expectedAnswers, "answersHash bound to revealed set");
+        assertEq(inputHash, keccak256(llmPrompt), "inputHash bound to submitted prompt");
     }
 
     function testJudgeAllNonOwner() public {
@@ -451,6 +476,66 @@ contract BountyJudgeTest is Test {
         vm.prank(OWNER);
         vm.expectRevert("already finalized");
         judge.finalizeWinner(bountyId, 0);
+    }
+
+    // ═══════════════ REFUND ═══════════════
+
+    function testRefundWhenNoReveals() public {
+        // Participants commit but NOBODY reveals → dead-end, owner reclaims.
+        commit(ALICE, "no show", SALT_A);
+        commit(BOB,   "no show", SALT_B);
+        warpPastReveal();
+
+        assertEq(judge.getRevealedCount(bountyId), 0);
+        uint256 ownerBefore = OWNER.balance;
+
+        vm.prank(OWNER);
+        judge.refund(bountyId);
+
+        (,,, uint256 rewardAfter,,,,,) = judge.getBountyCore(bountyId);
+        assertEq(rewardAfter, 0);
+        assertEq(OWNER.balance, ownerBefore + REWARD);
+        (,,,,,,, bool finalized,) = judge.getBountyCore(bountyId);
+        assertTrue(finalized);
+    }
+
+    function testRefundBlockedIfSomeoneRevealed() public {
+        // Once a valid reveal exists, refund is NOT allowed (anti-rag) — owner must judge.
+        commit(ALICE, "answer", SALT_A);
+        warpToReveal();
+        vm.prank(ALICE); judge.revealAnswer(bountyId, "answer", SALT_A);
+        warpPastReveal();
+
+        vm.prank(OWNER);
+        vm.expectRevert(BountyJudge.NotEligibleForRefund.selector);
+        judge.refund(bountyId);
+    }
+
+    function testRefundBeforeRevealDeadline() public {
+        commit(ALICE, "x", SALT_A);
+        // still within reveal window
+        vm.prank(OWNER);
+        vm.expectRevert(BountyJudge.RevealDeadlinePassed.selector);
+        judge.refund(bountyId);
+    }
+
+    function testRefundNonOwner() public {
+        commit(ALICE, "x", SALT_A);
+        warpPastReveal();
+
+        vm.prank(ALICE);
+        vm.expectRevert(BountyJudge.NotOwner.selector);
+        judge.refund(bountyId);
+    }
+
+    function testRefundTwice() public {
+        commit(ALICE, "x", SALT_A);
+        warpPastReveal();
+        vm.prank(OWNER); judge.refund(bountyId);
+
+        vm.prank(OWNER);
+        vm.expectRevert(BountyJudge.AlreadyFinalized.selector);
+        judge.refund(bountyId);
     }
 
     // ═══════════════ FULL FLOW ═══════════════
