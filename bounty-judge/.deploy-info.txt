@@ -1,28 +1,24 @@
-=== Deploy Info — Bounty Judge Contracts v3 ===
+=== Deploy Info — Bounty Judge Contracts ===
 Network: Ritual Chain testnet (Chain ID 1979)
 RPC: https://rpc.ritualfoundation.org
 Deployer: 0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4
 Deploy script: script/Deploy.s.sol (compiled with via_ir)
 
---- BountyJudge (Track 1: Commit-Reveal) v3 ---
+--- BountyJudge (Track 1: Commit-Reveal) ---
 Contract Address: 0x97e1907022c1AE5B276F2D45907DF96399a38c4F
 TX Hash: 0x46320bfc7abe1539d82496ba13be748fd490c5a0346f7b03eb3d42724a8b5a80
 Constructor: precompile = 0x0000000000000000000000000000000000000802
-On-chain check: LLM_PRECOMPILE() -> 0x0802, nextBountyId -> 1, refund() selector present
+On-chain check: LLM_PRECOMPILE() -> 0x0802, nextBountyId -> 1
 
-v3 production-grade hardening (on top of v2):
-- Refund: owner reclaims the reward when the reveal window closes with zero
-  reveals (dead-end), so funds are never locked forever. Refunds are blocked
-  once any answer is revealed (anti-rug): then the owner must judge + finalize.
-- Verified llmInput: judgeAll binds the judging to the canonical revealed-answer
-  set — stores answersHash (keccak over rubric + revealed participant/answer in
-  order) + inputHash (keccak256(llmInput)) and emits both. Tampered/answer-
-  swapping prompts become detectable off-chain. See getJudgingAttestation().
-
-v2 changes (kept):
+Features:
 - Precompile address configurable (constructor param)
-- IRitualWallet removed (unused); revealedCount O(1)
+- IRitualWallet removed; revealedCount O(1)
 - Ritual ms-timestamp normalisation (block.timestamp > 1e12 => ms; _now() /1000)
+- Refund: owner reclaims reward on no-reveal dead-end (anti-rug)
+- Verified llmInput: answersHash + inputHash stored in judgeAll (auditability)
+- MAX_SUBMISSIONS = 50 (anti gas-DoS)
+- Privacy gate: getSubmission hides answer until judged
+- Reentrancy guard on finalizeWinner + refund
 
 --- RitualBountyJudge (Track 2: Ritual TEE) ---
 Contract Address: 0x35Cd23637A8C5a8a61fD9A32D49A2fc1250f5A09
@@ -30,10 +26,9 @@ TX Hash: 0xf8125545622f984a676d190f34fe0c2b24c4990a79aceb94e4af3a86cb53507b
 Constructor: none
 
 --- Tests ---
-54 passing (42 BountyJudge + 10 RitualBountyJudge + 2 RitualMsTimestamp),
-covering refund (5 cases) + judging attestation binding (1 case).
+54 passing (42 BountyJudge + 10 RitualBountyJudge + 2 RitualMsTimestamp)
 
---- Commit-reveal proven live on v3 (bounty 1, two participants) ---
+--- Commit-reveal proven live (bounty 1, two participants) ---
 createBounty     : 0x15485e2e29ffb417d01feb9809b9dd4fbdcfbb5387592d5f51612129ae01e75d
 submitCommitment : 0xb43e3bc9051c26148c821cac80263273a85e3d9793752fc759a170ce05711949 (P1)
 submitCommitment : 0x5d8857ec150b96bc1ab203d26d8017ca5adbc5c867855cf51ba93dd06a24bc85 (P2)

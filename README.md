@@ -24,7 +24,7 @@ forge script script/Deploy.s.sol --rpc-url ritual --broadcast
 
 ## Deployed (Ritual testnet, chainId 1979)
 
-- BountyJudge v3: `0x97e1907022c1AE5B276F2D45907DF96399a38c4F`
+- BountyJudge: `0x97e1907022c1AE5B276F2D45907DF96399a38c4F`
 - RitualBountyJudge: `0x35Cd23637A8C5a8a61fD9A32D49A2fc1250f5A09`
 
 RPC: `https://rpc.ritualfoundation.org` · Explorer: `https://explorer.ritualfoundation.org`

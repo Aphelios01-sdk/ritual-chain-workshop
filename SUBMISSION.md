@@ -30,13 +30,13 @@ Deployed via `forge script script/Deploy.s.sol --rpc-url ritual --broadcast`,
 where the native LLM inference precompile at `0x0802` makes `judgeAll()` /
 `finalizeWinner()` functional (a Base deployment could not run `judgeAll`).
 
-- BountyJudge v3: `0x97e1907022c1AE5B276F2D45907DF96399a38c4F` (`LLM_PRECOMPILE = 0x0802`)
+- BountyJudge: `0x97e1907022c1AE5B276F2D45907DF96399a38c4F` (`LLM_PRECOMPILE = 0x0802`)
 - RitualBountyJudge: `0x35Cd23637A8C5a8a61fD9A32D49A2fc1250f5A09`
 
 Deploy TXs: `0x46320bfc7abe1539d82496ba13be748fd490c5a0346f7b03eb3d42724a8b5a80` (BountyJudge),
 `0xf8125545622f984a676d190f34fe0c2b24c4990a79aceb94e4af3a86cb53507b` (RitualBountyJudge).
 
-**v3 production hardening:** `refund()` reclaims the reward on a no-reveal
+**Production hardening:** `refund()` reclaims the reward on a no-reveal
 dead-end (anti-rug: blocked once any answer is revealed); `judgeAll` binds the
 judging to the canonical revealed-answer set via `answersHash` + `inputHash`
 (verified llmInput — tampered prompts are detectable off-chain).

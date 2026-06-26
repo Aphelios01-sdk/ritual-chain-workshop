@@ -113,7 +113,7 @@ from it**. The owner reads `aiReview` off-chain and manually picks the winner
 index in `finalizeWinner()`. This deliberately avoids auto-paying from
 unvalidated AI output (per the homework constraint) while keeping a human veto.
 
-### Production hardening (v3)
+### Production hardening
 
 Two production-grade guarantees added on top of the commit-reveal core:
 
@@ -246,7 +246,7 @@ precompile `0x0000000000000000000000000000000000000802` and deploys
 
 ### Commit-reveal flow status (Ritual Chain testnet)
 
-Proved **live on-chain on the v3 deployment** (`0x97e1907022...`) —
+Proved **live on-chain** (`0x97e1907022...`) —
 bounty 1, two participants, standard second-based deadlines:
 
 | Step | TX Hash | Status |
@@ -260,7 +260,7 @@ bounty 1, two participants, standard second-based deadlines:
 | `finalizeWinner` | after `judgeAll` | ⏳ |
 
 The **commit-reveal core** — the anti-cheating mechanism the assignment
-requires — is live on the current v3 contract: commitments hidden during
+requires — is live on the contract: commitments hidden during
 submission, reveals verified against
 `keccak256(answer, salt, msg.sender, bountyId)`, `revealedCount == 2`.
 
@@ -298,13 +298,12 @@ confirms second-based deadlines succeed).
 
 | Contract | Deploy TX |
 |----------|-----------|
-| BountyJudge v3 | `0x46320bfc7abe1539d82496ba13be748fd490c5a0346f7b03eb3d42724a8b5a80` |
+| BountyJudge | `0x46320bfc7abe1539d82496ba13be748fd490c5a0346f7b03eb3d42724a8b5a80` |
 | RitualBountyJudge | `0xf8125545622f984a676d190f34fe0c2b24c4990a79aceb94e4af3a86cb53507b` |
 
-> v3 hardens v2 for production: adds `refund()` (reclaim reward on a no-reveal
+> Production hardening adds: `refund()` (reclaim reward on a no-reveal
 > dead-end) and **verified `llmInput`** (`judgeAll` binds `answersHash` +
-> `inputHash` to the canonical revealed-answer set). The earlier live commit-
-> reveal proof was on the v2 contract; the commit/reveal logic is unchanged in v3.
+> `inputHash` to the canonical revealed-answer set.
 
 ---
 
@@ -451,5 +450,5 @@ forge script script/Deploy.s.sol \
 
 RPC: `https://rpc.ritualfoundation.org` · Deployer: `0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4`
 
-- BountyJudge v3: `0x97e1907022c1AE5B276F2D45907DF96399a38c4F` — `LLM_PRECOMPILE = 0x0802`, ms-normalised, refund + verified llmInput
+- BountyJudge: `0x97e1907022c1AE5B276F2D45907DF96399a38c4F` — `LLM_PRECOMPILE = 0x0802`, ms-normalised, refund + verified llmInput
 - RitualBountyJudge: `0x35Cd23637A8C5a8a61fD9A32D49A2fc1250f5A09`
