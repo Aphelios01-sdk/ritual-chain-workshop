@@ -8,7 +8,7 @@ Fork of [cozfuttu/ritual-chain-workshop](https://github.com/cozfuttu/ritual-chai
 |---|---|
 | **`bounty-judge/`** | **Homework submission** — Foundry project with the commit-reveal `BountyJudge` (Track 1), Ritual TEE `RitualBountyJudge` (Track 2), 54 tests, and deploy script. See [`bounty-judge/README.md`](./bounty-judge/README.md) for the full lifecycle, architecture comparison, and reflection. |
 | `hardhat/` | Original workshop starter. Contains the unmodified `AIJudge.sol` (public submissions — the flaw we fix in the homework). Not used by the submission. |
-| `web/` | Original workshop frontend. Built for `AIJudge.sol` (public `submitAnswer` flow). Not wired to the commit-reveal `BountyJudge`. |
+| `web/` | Workshop frontend — migrated to the commit-reveal `BountyJudge` (SubmitCommitment, RevealAnswer, CommitmentsList). Uses the new ABI and contract address from `bounty-judge/`. |
 
 ## Quick start
 

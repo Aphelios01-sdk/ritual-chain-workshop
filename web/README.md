@@ -1,9 +1,10 @@
-# AI Bounty Judge
+# Bounty Judge — Commit-Reveal Frontend
 
-A workshop-demo frontend for the **Ritual Chain** `SimpleAIBountyJudge` contract.
+Frontend for the **Ritual Chain** `BountyJudge` contract (commit-reveal flow).
 
-> Submit answers to a bounty. After the deadline, Ritual AI ranks all
-> submissions. The bounty owner finalizes the winner.
+> Participants submit **commitment hashes** during the submission phase. After the
+> deadline, they **reveal** their answers. The bounty owner judges all revealed
+> answers via Ritual AI, then finalizes the winner.
 
 Built with **Next.js (App Router) · TypeScript · Tailwind CSS · wagmi · viem**.
 
@@ -11,24 +12,17 @@ Built with **Next.js (App Router) · TypeScript · Tailwind CSS · wagmi · viem
 
 ## Product flow
 
-1. A bounty owner **creates a bounty** with a title, rubric, deadline, and reward.
-2. Participants **submit answers** before the deadline.
-3. After the deadline, the owner clicks **Judge All Submissions**.
-4. The frontend gathers all submissions, builds one Ritual LLM request, encodes
-   it as `llmInput`, and calls `judgeAll(bountyId, llmInput)`.
-5. The contract stores/emits the **AI review**.
-6. The owner reads the AI review and clicks **Finalize Winner** with the chosen
-   `winnerIndex`.
-7. The contract pays the winner.
-
-> AI review is advisory. The bounty owner finalizes the winner. All submissions
-> are judged together after the deadline. Only one winner receives the reward.
+1. Owner **creates a bounty** with title, rubric, submission deadline, reveal deadline, and reward.
+2. Participants **commit** a hash (`keccak256(answer, salt, sender, bountyId)`) during the submission phase.
+3. After submission deadline, participants **reveal** their answer + salt.
+4. Answers are **hidden** (privacy gate) until the bounty is judged.
+5. After the reveal deadline, owner clicks **Judge All** and pastes the LLM prompt.
+6. The contract stores/emits the **AI review** + `answersHash`/`inputHash` (auditability).
+7. Owner reads the AI review and clicks **Finalize Winner** → reward paid.
 
 ---
 
 ## Configure
-
-Copy the example env file and fill in your deployment:
 
 ```bash
 cp .env.example .env.local
@@ -36,84 +30,58 @@ cp .env.example .env.local
 
 | Variable | Purpose |
 | --- | --- |
-| `NEXT_PUBLIC_CONTRACT_ADDRESS` | Deployed `SimpleAIBountyJudge` address. The UI shows a banner until this is set. |
+| `NEXT_PUBLIC_CONTRACT_ADDRESS` | Deployed `BountyJudge` address. |
 | `NEXT_PUBLIC_RITUAL_RPC_URL` | Ritual Chain JSON-RPC endpoint. |
 | `NEXT_PUBLIC_RITUAL_CHAIN_ID` | Numeric chain id (default `1979`). |
-| `NEXT_PUBLIC_RITUAL_EXECUTOR_ADDRESS` | LLM executor / precompile-callback address used when encoding `judgeAll` input. Defaults to the LLM precompile `0x…0802`. |
-| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | *(optional)* Enables the WalletConnect connector. Injected/MetaMask work without it. |
-
-All values are read in `src/config/contract.ts` and `src/config/wagmi.ts`.
+| `NEXT_PUBLIC_RITUAL_EXECUTOR_ADDRESS` | LLM executor address (default `0x…0802`). |
+| `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | *(optional)* WalletConnect. |
 
 ---
 
 ## Run
 
 ```bash
-pnpm install      # or npm install
-pnpm dev          # http://localhost:3000
-```
+pnpm install
+pnpm dev              # http://localhost:3000
 
-Build / start:
-
-```bash
 pnpm build
 pnpm start
 ```
 
 ---
 
-## How it's wired
+## Structure
 
 ```
 src/
-  abi/AIJudge.ts            Contract ABI (provided)
+  abi/AIJudge.ts             BountyJudge v3 ABI (39 entries)
   config/
-    contract.ts            Address + executor + chain id from env vars
-    wagmi.ts               Custom Ritual Chain + wagmi config
+    contract.ts              Address + executor + chain id
+    wagmi.ts                 Custom Ritual Chain + wagmi
   app/
-    providers.tsx          'use client' wagmi + React Query provider tree
-    layout.tsx             Server layout (fonts, metadata) -> Providers
-    page.tsx               Dashboard: create, load-by-id, recent list, bounty view
+    providers.tsx            wagmi + React Query providers
+    layout.tsx               Root layout → Providers
+    page.tsx                 Dashboard
   hooks/
-    useBounty.ts           Reads + parses getBounty (polls so status updates)
-    useWriteTx.ts          idle -> wallet -> pending -> confirmed | failed tx state
-    useRecentBounties.ts   localStorage list of created/opened bounty ids
+    useBounty.ts             getBountyCore + getBountyInfo (polls)
+    useWriteTx.ts            Tx state machine
+    useNow.ts                Clock for countdowns
+    useRecentBounties.ts     localStorage history
   lib/
-    ritualLlm.ts           buildJudgeAllLlmInput() — Ritual LLM request encoder
-    aiReview.ts            Decode aiReview bytes + parse judge JSON
-    bounty.ts              Bounty type, status logic, submission gating
-    format.ts              Address/amount/timestamp formatting helpers
-  components/               UI primitives + each feature card
+    commitReveal.ts          computeCommitment, generateSalt, localStorage helpers
+    ritualLlm.ts             buildJudgeAllLlmInput() encoder
+    aiReview.ts              Decode aiReview bytes
+    bounty.ts                Bounty type, status (submission/reveal/ready/judged/finalized)
+    format.ts                Address/amount/timestamp formatting
+  components/
+    SubmitCommitment.tsx     Hash + submit commitment
+    RevealAnswer.tsx         Read saved (answer, salt) → reveal
+    CommitmentsList.tsx      Participant list, show answer only after judged
+    JudgeAll.tsx             Manual llmInput + judgeAll()
+    FinalizeWinner.tsx       Pick winnerIndex + finalize
+    CreateBountyForm.tsx     2 deadlines (submission + reveal)
+    BountyDetail.tsx         Phase + 2 countdowns
+    BountyView.tsx           Phase-gated rendering
+    WalletConnect.tsx        Wallet connection
+    ui.tsx                   UI primitives (Card, Button, Input, TxStatus…)
 ```
-
-### The Ritual LLM encoder (`src/lib/ritualLlm.ts`)
-
-`buildJudgeAllLlmInput({ executorAddress, title, rubric, submissions })` builds
-the batch-judging prompt (using the workshop's exact template, low temperature
-for stable judging) and ABI-encodes it with viem's `encodeAbiParameters` into
-the `bytes` passed to `judgeAll`.
-
-> ⚠️ **The exact Ritual LLM precompile ABI is not yet publicly pinned down.**
-> The encoder uses a clearly-documented *best-effort* tuple layout and is kept
-> isolated so only this file needs to change when the real ABI is published.
-> Flip the `ENCODING` constant to `"json"` for a mocked UTF-8 JSON payload that
-> lets the full create -> submit -> judge -> finalize flow run end-to-end against
-> a contract that simply stores/echoes the bytes.
-
-### AI review display
-
-After `judgeAll`, the UI reads `aiReview` from `getBounty`, decodes the bytes to
-text, and tries to parse the judge JSON (`winnerIndex`, `ranking`, `summary`).
-It renders the recommended winner, a ranking table with scores and reasons, and
-the summary. If parsing fails, it shows the raw response in a code block. The
-finalize input is prefilled with the AI's recommended `winnerIndex`.
-
----
-
-## Notes for the workshop
-
-- Transaction buttons show clear states and disable while pending.
-- Owner-only actions (Judge / Finalize) only appear for the connected owner.
-- The "recent bounties" list is kept in `localStorage` (no indexer required).
-- Multicall is **not** assumed — submissions are read one-by-one, so it works on
-  a fresh chain without a deployed multicall contract.
