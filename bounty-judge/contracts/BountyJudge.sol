@@ -2,21 +2,12 @@
 pragma solidity ^0.8.24;
 
 /**
- * @title  IRitualWallet
- * @notice Interface for the Ritual wallet used to lock bounty rewards.
- *         Identical to the workshop interface.
- */
-/**
  * @title  PrecompileConsumer
  * @notice Base contract for Ritual Chain precompile access.
- *         Provides the LLM_INFERENCE_PRECOMPILE at 0x0802 and
- *         helper _executePrecompile() for calling Ritual precompiles.
- *         (Identical to the workshop base contract.)
+ *         Provides _executePrecompile() for calling Ritual precompiles.
+ *         (Derived from the workshop base contract.)
  */
 abstract contract PrecompileConsumer {
-    // Short-running async precompile for LLM inference
-    address internal constant LLM_INFERENCE_PRECOMPILE = address(0x0802);
-
     /**
      * @notice  Execute a short-running async precompile.
      *          Decodes the outer (simmedInput, actualOutput) envelope.
@@ -41,19 +32,6 @@ abstract contract PrecompileConsumer {
         );
         return actualOutput;
     }
-}
-
-/**
- * @title  IRitualWallet
- * @notice Interface for the Ritual wallet used to lock bounty rewards.
- *         Identical to the workshop interface.
- */
-interface IRitualWallet {
-    function deposit(uint256 lockDuration) external payable;
-    function depositFor(address user, uint256 lockDuration) external payable;
-    function withdraw(uint256 amount) external;
-    function balanceOf(address) external view returns (uint256);
-    function lockUntil(address) external view returns (uint256);
 }
 
 /**

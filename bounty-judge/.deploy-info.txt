@@ -33,6 +33,14 @@ Constructor: none
 52 passing (40 BountyJudge + 10 RitualBountyJudge + 2 RitualMsTimestamp),
 covering refund (5 cases) + judging attestation binding (1 case).
 
+--- Commit-reveal proven live on v3 (bounty 1, two participants) ---
+createBounty     : 0x15485e2e29ffb417d01feb9809b9dd4fbdcfbb5387592d5f51612129ae01e75d
+submitCommitment : 0xb43e3bc9051c26148c821cac80263273a85e3d9793752fc759a170ce05711949 (P1)
+submitCommitment : 0x5d8857ec150b96bc1ab203d26d8017ca5adbc5c867855cf51ba93dd06a24bc85 (P2)
+revealAnswer     : 0x5229cff2d40516d996ba9535da9f5b082691978bad3ac7d0cecbe19dcf3f96c3 (P1, verified)
+revealAnswer     : 0x5920a784a6252a7e548bcb83adcaf8c2e02618434784f4d8ee6ad806d853e4ca (P2, verified)
+revealedCount = 2 (both verified against keccak256(answer,salt,sender,bountyId))
+
 --- Why Ritual Chain (not Base) ---
 judgeAll() calls the LLM inference precompile at 0x0802, which only exists on
 Ritual Chain (chainId 1979); a Base mainnet deployment could not run judgeAll.
