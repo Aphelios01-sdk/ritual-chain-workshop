@@ -755,7 +755,7 @@ contract BountyJudgeFuzzTest is Test {
     }
 
     function testFuzz_CommitmentBindsToSender(bytes32 salt, address participant) public {
-        vm.assume(participant != address(0) && participant != OWNER);
+        vm.assume(participant != address(0) && participant != address(this) && participant != OWNER);
         vm.assume(salt != bytes32(0));
 
         vm.prank(OWNER);
