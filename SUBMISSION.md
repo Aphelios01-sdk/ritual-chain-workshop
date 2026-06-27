@@ -30,11 +30,11 @@ Deployed via `forge script script/Deploy.s.sol --rpc-url ritual --broadcast`,
 where the native LLM inference precompile at `0x0802` makes `judgeAll()` /
 `finalizeWinner()` functional (a Base deployment could not run `judgeAll`).
 
-- BountyJudge: `0xcBd6a1742a1f15309B3458F47aFBcCfb1CA8da99` (`LLM_PRECOMPILE = 0x0802`)
-- RitualBountyJudge: `0x3D9C52CeaA5988eF8289955ECdE65F86B1Ae2b2C`
+- BountyJudge: `0x8825681a0472Bdc7e547f36dc7292DCE9449c131` (`LLM_PRECOMPILE = 0x0802`)
+- RitualBountyJudge: `0xeb231C16A108A35d11C583BA3440dBa37f9A2596`
 
-Deploy TXs: `0x1332456d5970c2f5807bfbba81fb165cae2f0516d763eacb11ba9a6312282ad6` (BountyJudge),
-`0x41fe84471d185365c65eeee4424c9f43874e4fe7d26ca330855498244abed23c` (RitualBountyJudge).
+Deploy TXs: `0x80c95bfa2bd816189a201c89ea5f9a5cc028f353ada884cce5c6d5acd5d0cc93` (BountyJudge),
+`0xe675570341f9e7fb7e51c704dcd7f99e06a4cce8b78155da7d04b8f531ea6281` (RitualBountyJudge).
 
 **Production hardening:** `refund()` reclaims the reward on a no-reveal
 dead-end (anti-rug: blocked once any answer is revealed); `judgeAll` binds the

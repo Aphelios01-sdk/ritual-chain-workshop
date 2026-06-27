@@ -5,8 +5,8 @@ Deployer: 0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4
 Deploy script: script/Deploy.s.sol (compiled with via_ir)
 
 --- BountyJudge (Track 1: Commit-Reveal) ---
-Contract Address: 0xcBd6a1742a1f15309B3458F47aFBcCfb1CA8da99
-TX Hash: 0x1332456d5970c2f5807bfbba81fb165cae2f0516d763eacb11ba9a6312282ad6
+Contract Address: 0x8825681a0472Bdc7e547f36dc7292DCE9449c131
+TX Hash: 0x80c95bfa2bd816189a201c89ea5f9a5cc028f353ada884cce5c6d5acd5d0cc93
 Constructor: precompile = 0x0000000000000000000000000000000000000802
 On-chain check: LLM_PRECOMPILE() -> 0x0802, nextBountyId -> 1
 
@@ -21,8 +21,8 @@ Features:
 - Reentrancy guard on finalizeWinner + refund
 
 --- RitualBountyJudge (Track 2: Ritual TEE) ---
-Contract Address: 0x3D9C52CeaA5988eF8289955ECdE65F86B1Ae2b2C
-TX Hash: 0x41fe84471d185365c65eeee4424c9f43874e4fe7d26ca330855498244abed23c
+Contract Address: 0xeb231C16A108A35d11C583BA3440dBa37f9A2596
+TX Hash: 0xe675570341f9e7fb7e51c704dcd7f99e06a4cce8b78155da7d04b8f531ea6281
 Constructor: none
 
 --- Tests ---
@@ -34,8 +34,8 @@ judgeAll() calls the LLM inference precompile at 0x0802, which only exists on
 Ritual Chain (chainId 1979); a Base mainnet deployment could not run judgeAll.
 
 --- Full lifecycle proven live (bounty 1, single participant) ---
-createBounty     : 0x1c52c8ac3dee807ece322f7e43e142387650d5659986dbc863c01752ee7dfcb2
-submitCommitment : 0x3b6b7c01a92314374eeb8645b196907166aa990afdc599322089bd6a0259802d
-revealAnswer     : 0x2ab4f292b1439c08a2794c89392807e931798ea2142e39f5721d7db3c48e3fb7
-judgeAll         : 0x2f2ac785d3a384841f7b5e082cc8107d26d5cf0e8ccf828d22723c7c8b16ac01 (judged=true, answersHash+inputHash stored; tx receipt status=0 due to Ritual async delivery — contract state is correct)
-finalizeWinner   : 0x273914ec6d03489dee88be48f8a08cf3a71ce5850159e013d7e0cd2cde694430 (reward paid, status=1)
+createBounty     : 0x84c0f79281489421a269afa3aa77ffda391281359154bc20a655b7070d386624
+submitCommitment : 0xeee87b331344998f669ed6b1c1ac2d9b3c6c7a12b9c36b800dccc5ff1a44f981
+revealAnswer     : 0xdde4b928fac89426e6d240e8ff14643495303819c6cd4ef3294ef14785f5c855
+judgeAll         : 0xf8fc2623520c738d7e8906552a4afe88fff48d527c20e932f67a694077c8696e (status=1, judged=true, answersHash+inputHash stored; LLM billing wallet funded via deposit)
+finalizeWinner   : 0x46147a89081637a6eb4e891600534d56b218eddd4b65c4c89929b76cfb855845 (reward paid, status=1)
