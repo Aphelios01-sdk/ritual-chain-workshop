@@ -10,16 +10,26 @@ import "../contracts/RitualBountyJudge.sol";
 // Returns abi.encode(bytes simmedInput, bytes actualOutput) as expected by _executePrecompile.
 contract MockLLMPrecompile {
     bytes public lastInput;
+    bool public shouldError;
 
-    // Fallback: handles raw precompile.call(input) used by _executePrecompile
+    function setShouldError(bool _v) external { shouldError = _v; }
+
+    // Fallback: handles raw precompile.call(input) used by _executePrecompile.
+    // Returns the workshop envelope:
+    //   outer:  abi.encode(bytes simmedInput, bytes actualOutput)
+    //   inner:  abi.encode(bool hasError, bytes completionData, bytes, string errorMessage, ConvoHistory)
     fallback(bytes calldata input) external returns (bytes memory) {
         lastInput = input;
-        // Short-running async precompile response format:
-        // abi.encode(bytes simmedInput, bytes actualOutput)
-        return abi.encode(
-            input,  // simmedInput = echo input
-            bytes('{"winnerIndex":0,"ranking":[{"index":0,"score":95,"reason":"Best answer"}],"summary":"AI judge review complete"}')  // actualOutput
+        bytes memory actualOutput = abi.encode(
+            shouldError,                                   // hasError
+            shouldError
+                ? bytes("")
+                : bytes('{"winnerIndex":0,"summary":"AI judge review complete"}'), // completionData
+            bytes(""),                                     // (unused)
+            shouldError ? "model timeout" : "",           // errorMessage
+            BountyJudge.ConvoHistory("", "", "")          // convoHistory
         );
+        return abi.encode(input, actualOutput);
     }
 }
 
@@ -462,6 +472,30 @@ contract BountyJudgeTest is Test {
         vm.stopPrank();
     }
 
+    function testRevertJudgeAllOnLLMError() public {
+        commit(ALICE, "A", SALT_A);
+        warpToReveal();
+        vm.prank(ALICE); judge.revealAnswer(bountyId, "A", SALT_A);
+        warpPastReveal();
+
+        // LLM returns hasError=true → judgeAll must revert atomically.
+        MockLLMPrecompile(address(0x0802)).setShouldError(true);
+        vm.prank(OWNER);
+        vm.expectRevert("model timeout");
+        judge.judgeAll(bountyId, bytes("prompt"));
+
+        // judged stays false → owner can retry once the LLM recovers.
+        (,,,,,, bool judged,,) = judge.getBountyCore(bountyId);
+        assertFalse(judged, "judged must stay false on LLM error");
+
+        // Retry succeeds after the LLM recovers.
+        MockLLMPrecompile(address(0x0802)).setShouldError(false);
+        vm.prank(OWNER);
+        judge.judgeAll(bountyId, bytes("prompt"));
+        (,,,,,, bool judged2,,) = judge.getBountyCore(bountyId);
+        assertTrue(judged2, "judged true after successful retry");
+    }
+
     function testJudgeAllNoRevealedSubmissions() public {
         commit(ALICE, "A", SALT_A); // committed but never revealed
         commit(BOB,   "B", SALT_B);
@@ -788,7 +822,7 @@ contract BountyJudgeFuzzTest is Test {
         assertEq(stored, "", "privacy gate hides answer until judged");
     }
 
-    function invariant_RevealedCountMatches() public {
+    function testRevealedCountMatches() public {
         // After a single createBounty flow: revealedCount must equal
         // the number of participants whose submission.revealed == true.
         vm.prank(OWNER);
@@ -806,7 +840,7 @@ contract BountyJudgeFuzzTest is Test {
         assertEq(judge.getRevealedCount(id), 1, "invariant: revealedCount == 1 after one reveal");
     }
 
-    function invariant_PhaseProgressesMonotonically() public {
+    function testPhaseProgressesMonotonically() public {
         // Bounty phase should move forward: SUBMISSION(0) -> REVEAL(1) -> FINALIZED(2).
         vm.prank(OWNER);
         uint256 id = judge.createBounty{value: 1}("t", "r", block.timestamp + 1 days, block.timestamp + 3 days);

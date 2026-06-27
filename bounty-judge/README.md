@@ -7,7 +7,7 @@ Extends the workshop AIJudge contract (`github.com/cozfuttu/ritual-chain-worksho
 > **TL;DR** — Two Solidity contracts. `BountyJudge` adds commit-reveal (hash →
 > reveal → batch LLM judge) to the workshop's AI bounty judge, keeping
 > submissions hidden until judging. `RitualBountyJudge` goes further with
-> encrypted TEE submissions and on-chain attestation. 78+ tests, all passing.
+> encrypted TEE submissions and on-chain attestation. 79+ tests, all passing.
 > **Deployed on Ritual Chain testnet** (chainId 1979) at
 > `0xcBd6a1742a1f15309B3458F47aFBcCfb1CA8da99`.
 
@@ -272,7 +272,7 @@ The `aiReview` bytes are empty for this call — a known consequence of Ritual's
 async precompile envelope (the LLM output was delivered off-chain); the
 contract correctly stores whatever the precompile returns after decoding.
 
-\> `judgeAll`/`finalizeWinner` are also fully exercised in the 78-test suite
+\> `judgeAll`/`finalizeWinner` are also fully exercised in the 79-test suite
 \> with a mocked precompile.
 
 > On Ritual Chain every step is functional, including `judgeAll` (LLM precompile)
@@ -309,11 +309,11 @@ confirms second-based deadlines succeed).
 
 ## Test Results
 
-**78 tests, 0 failed, 0 skipped** (verified with `forge test -vvv`):
+**79 tests, 0 failed, 0 skipped** (verified with `forge test -vvv`):
 
 | Suite | Tests | Passed |
 |-------|-------|--------|
-| BountyJudgeTest (Track 1) | 47 | 47 ✅ |
+| BountyJudgeTest (Track 1) | 48 | 48 ✅ |
 | BountyJudgeFuzzTest (fuzz) | 4 | 4 ✅ |
 | BountyJudgeInvariantTest (invariant) | 3 | 3 ✅ |
 | RitualBountyJudgeTest (Track 2) | 15 | 15 ✅ |
@@ -435,7 +435,7 @@ In a fair bounty system, the bounty description, rubric, deadlines, and prize am
 |------|-------|-------------|
 | `contracts/BountyJudge.sol` | Required | Commit-reveal bounty judge with configurable precompile |
 | `contracts/RitualBountyJudge.sol` | Advanced | Ritual TEE encrypted submissions with attestation verification |
-| `test/BountyJudge.t.sol` | Both | 78 test cases (54 + 22 + 2), all passing |
+| `test/BountyJudge.t.sol` | Both | 79 test cases (55 + 22 + 2), all passing |
 | `script/Deploy.s.sol` | Both | Foundry deploy script → Ritual Chain (chainId 1979) |
 | `README.md` | Both | Lifecycle, architecture, test plan, reflection, deployment |
 

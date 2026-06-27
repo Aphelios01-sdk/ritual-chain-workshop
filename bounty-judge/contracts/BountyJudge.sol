@@ -96,6 +96,13 @@ contract BountyJudge is PrecompileConsumer {
         bool    revealed;     // true after valid reveal
     }
 
+    // Envelope returned by the LLM inference precompile (workshop format).
+    struct ConvoHistory {
+        string storageType;
+        string path;
+        string secretsName;
+    }
+
     struct Bounty {
         address payable owner;
         string  title;
@@ -365,8 +372,24 @@ contract BountyJudge is PrecompileConsumer {
             llmInput
         );
 
+        // Validate the LLM result for errors. The workshop envelope is
+        //   abi.encode(bool hasError, bytes completionData, bytes, string errorMessage, ConvoHistory)
+        // If hasError, revert ATOMICALLY so `judged` stays false and the owner
+        // can simply call judgeAll() again — no reset mechanism needed.
+        //
+        // Defensive guard: Ritual's async delivery can return an empty payload
+        // to the simulating tx (the real output arrives in the delivery tx), so
+        // we only decode when there is a synchronous payload to inspect.
+        bytes memory review = output;
+        if (output.length > 0) {
+            (bool hasError, bytes memory completionData, , string memory errorMessage, ) =
+                abi.decode(output, (bool, bytes, bytes, string, ConvoHistory));
+            require(!hasError, errorMessage);
+            review = completionData;
+        }
+
         b.judged       = true;
-        b.aiReview     = output;
+        b.aiReview     = review;
 
         emit AllAnswersJudged(bountyId, output, answersHash, inputHash);
     }

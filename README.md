@@ -6,7 +6,7 @@ Fork of [cozfuttu/ritual-chain-workshop](https://github.com/cozfuttu/ritual-chai
 
 | Directory | What it is |
 |---|---|
-| **`bounty-judge/`** | **Homework submission** — Foundry project with the commit-reveal `BountyJudge` (Track 1), Ritual TEE `RitualBountyJudge` (Track 2), 78 tests, deploy script. See [`bounty-judge/README.md`](./bounty-judge/README.md). |
+| **`bounty-judge/`** | **Homework submission** — Foundry project with the commit-reveal `BountyJudge` (Track 1), Ritual TEE `RitualBountyJudge` (Track 2), 79 tests, deploy script. See [`bounty-judge/README.md`](./bounty-judge/README.md). |
 | `web/` | Frontend migrated to commit-reveal (SubmitCommitment, RevealAnswer, CommitmentsList). Uses ABI + address from `bounty-judge/`. |
 
 ## Quick start
@@ -14,7 +14,7 @@ Fork of [cozfuttu/ritual-chain-workshop](https://github.com/cozfuttu/ritual-chai
 ```bash
 # Run the homework test suite
 cd bounty-judge
-forge test                   # 78/78 passing
+forge test                   # 79/79 passing
 
 # Deploy to Ritual Chain testnet
 cp .env.example .env         # set RITUAL_RPC_URL + DEPLOYER_PRIVATE_KEY
