@@ -135,7 +135,7 @@ that would let the owner rug valid participants, so in that case the owner must
 ```solidity
 function refund(uint256 bountyId) external onlyOwner(bountyId) {
     if (b.judged || b.finalized) revert AlreadyFinalized();
-    if (_now() <= b.revealDeadline) revert RevealDeadlinePassed();
+    if (_now() <= b.revealDeadline) revert RevealDeadlineNotPassed();
     if (b.revealedCount != 0) revert NotEligibleForRefund();   // anti-rug
     b.finalized = true; b.reward = 0;
     payable(msg.sender).call{value: reward}("");
