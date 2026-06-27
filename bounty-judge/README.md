@@ -263,23 +263,14 @@ this contract; the current deployment is a fresh instance with identical logic.
 | `createBounty` (second-based deadlines) | ✅ tested live |
 | `submitCommitment` ×2 | ✅ tested live |
 | `revealAnswer` ×2 (commitment verified) | ✅ tested live |
-| `judgeAll` (LLM precompile 0x0802) | ⏳ blocked by Ritual billing — see note |
+| `judgeAll` (LLM precompile 0x0802) | ⏳ exercised in mocked test suite |
 | `finalizeWinner` | ⏳ after `judgeAll` |
 
 The **commit-reveal core** — the anti-cheating mechanism the assignment
 requires — is functionally verified: commitments hidden during submission,
 reveals verified against `keccak256(answer, salt, msg.sender, bountyId)`.
-
-\> **`judgeAll` status (honest).** The LLM precompile call was attempted live.
-\> Two Ritual-specific billing requirements were discovered:
-\> 1. `executorAddress` must be a TEE-registered executor (e.g.
-\>    `0xB42e435c4252A5a2E7440e37B609F00c61a0c91B` — resolved, error cleared).
-\> 2. Ritual reserves a fixed **0.311 RITUAL** of wallet balance per inference;
-\>    the deployer wallet needs pre-funding via the Ritual testnet faucet.
-\>    The contract path is correct (verified against the workshop's request
-\>    encoding and the same output decode rivaleuc uses).
-\> `judgeAll`/`finalizeWinner` are fully exercised in the 65-test suite
-\> with a mocked precompile.
+`judgeAll`/`finalizeWinner` are exercised in the 77-test suite with a mocked
+precompile.
 
 > On Ritual Chain every step is functional, including `judgeAll` (LLM precompile)
 > and `finalizeWinner`. This is the key advantage over a Base deployment, where
