@@ -201,6 +201,23 @@ contract BountyJudgeTest is Test {
         judge.submitCommitment(bountyId, bytes32(uint256(0x1)));
     }
 
+    function testPrivacyGateOwnerCannotSeeAnswersBeforeJudge() public {
+        commit(ALICE, "secret-answer", SALT_A);
+        warpToReveal();
+        vm.prank(ALICE); judge.revealAnswer(bountyId, "secret-answer", SALT_A);
+
+        (, string memory ownerView, bool revealed) = judge.getSubmission(bountyId, ALICE);
+        assertEq(ownerView, "", "owner cannot see answer before judge");
+        assertTrue(revealed);
+
+        // After judge, answer IS visible.
+        warpPastReveal();
+        vm.prank(OWNER);
+        judge.judgeAll(bountyId, bytes("Rubric + answers"));
+        (, string memory visible,) = judge.getSubmission(bountyId, ALICE);
+        assertEq(visible, "secret-answer");
+    }
+
     function testCommitToNonexistentBounty() public {
         vm.prank(ALICE);
         vm.expectRevert(BountyJudge.BountyNotFound.selector);
@@ -585,6 +602,40 @@ contract BountyJudgeTest is Test {
         judge.refund(bountyId);
     }
 
+    function testRefundBlockedAfterJudgeAll() public {
+        commit(ALICE, "x", SALT_A);
+        warpToReveal(); vm.prank(ALICE); judge.revealAnswer(bountyId, "x", SALT_A);
+        warpPastReveal();
+        vm.prank(OWNER); judge.judgeAll(bountyId, bytes("p"));
+
+        vm.prank(OWNER);
+        vm.expectRevert(BountyJudge.AlreadyFinalized.selector);
+        judge.refund(bountyId);
+    }
+
+    function testRefundBlockedAfterFinalize() public {
+        commit(ALICE, "x", SALT_A);
+        warpToReveal(); vm.prank(ALICE); judge.revealAnswer(bountyId, "x", SALT_A);
+        warpPastReveal();
+        vm.prank(OWNER); judge.judgeAll(bountyId, bytes("p"));
+        vm.prank(OWNER); judge.finalizeWinner(bountyId, 0);
+
+        vm.prank(OWNER);
+        vm.expectRevert(BountyJudge.AlreadyFinalized.selector);
+        judge.refund(bountyId);
+    }
+
+    function testRefundSucceedsWhenCommittedButNotRevealed() public {
+        // Participant committed but never revealed — revealedCount stays 0 -> refund OK.
+        commit(ALICE, "x", SALT_A);
+        warpPastReveal();
+
+        uint256 balBefore = OWNER.balance;
+        vm.prank(OWNER);
+        judge.refund(bountyId);
+        assertEq(OWNER.balance, balBefore + REWARD, "refund returned when no reveals");
+    }
+
     // ═══════════════ FULL FLOW ═══════════════
 
     function testFullFlowThreeParticipantsOneInvalidReveal() public {
@@ -733,10 +784,40 @@ contract BountyJudgeFuzzTest is Test {
         assertEq(stored, "", "privacy gate hides answer until judged");
     }
 
-    function invariant_RewardCannotExceedOriginal() public {
-        // This is a structural invariant that the test suite validates
-        // through the existing test battery. We assert it stands.
-        assertTrue(true);
+    function invariant_RevealedCountMatches() public {
+        // After a single createBounty flow: revealedCount must equal
+        // the number of participants whose submission.revealed == true.
+        vm.prank(OWNER);
+        uint256 id = judge.createBounty{value: 1}("t", "r", block.timestamp + 1 days, block.timestamp + 3 days);
+
+        address alice = address(0xA11CE);
+        bytes32 c = keccak256(abi.encodePacked("ans", bytes32(uint256(0x1)), alice, id));
+        vm.prank(alice);
+        judge.submitCommitment(id, c);
+
+        vm.warp(block.timestamp + 2 days);
+        vm.prank(alice);
+        judge.revealAnswer(id, "ans", bytes32(uint256(0x1)));
+
+        assertEq(judge.getRevealedCount(id), 1, "invariant: revealedCount == 1 after one reveal");
+    }
+
+    function invariant_PhaseProgressesMonotonically() public {
+        // Bounty phase should move forward: SUBMISSION(0) -> REVEAL(1) -> FINALIZED(2).
+        vm.prank(OWNER);
+        uint256 id = judge.createBounty{value: 1}("t", "r", block.timestamp + 1 days, block.timestamp + 3 days);
+
+        (,,,,,,,, BountyJudge.Phase p0) = judge.getBountyCore(id);
+        assertTrue(p0 == BountyJudge.Phase.SUBMISSION);
+
+        address alice = address(0xA11CE);
+        bytes32 c = keccak256(abi.encodePacked("ans", bytes32(uint256(0x1)), alice, id));
+        vm.prank(alice); judge.submitCommitment(id, c);
+        vm.warp(block.timestamp + 2 days);
+        vm.prank(alice); judge.revealAnswer(id, "ans", bytes32(uint256(0x1)));
+
+        (,,,,,,,, BountyJudge.Phase p1) = judge.getBountyCore(id);
+        assertTrue(uint256(p1) >= uint256(p0), "invariant: phase never goes backward");
     }
 }
 

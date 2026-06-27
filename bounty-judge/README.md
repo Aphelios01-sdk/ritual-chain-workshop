@@ -4,6 +4,15 @@
 
 Extends the workshop AIJudge contract (`github.com/cozfuttu/ritual-chain-workshop`) to fix the critical flaw: **submissions are now hidden via commit-reveal until AI judging is complete**.
 
+> **TL;DR** — Two Solidity contracts. `BountyJudge` adds commit-reveal (hash →
+> reveal → batch LLM judge) to the workshop's AI bounty judge, keeping
+> submissions hidden until judging. `RitualBountyJudge` goes further with
+> encrypted TEE submissions and on-chain attestation. 60+ tests, all passing.
+> **Deployed on Ritual Chain testnet** (chainId 1979) at
+> `0xcBd6a1742a1f15309B3458F47aFBcCfb1CA8da99`.
+
+---
+
 ---
 
 ## Context
@@ -306,12 +315,12 @@ confirms second-based deadlines succeed).
 
 ## Test Results
 
-**60 tests, 0 failed, 0 skipped** (verified with `forge test -vvv`):
+**65 tests, 0 failed, 0 skipped** (verified with `forge test -vvv`):
 
 | Suite | Tests | Passed |
 |-------|-------|--------|
-| BountyJudgeTest (Track 1) | 42 | 42 ✅ |
-| BountyJudgeFuzzTest (fuzz + invariant) | 3 | 3 ✅ |
+| BountyJudgeTest       | 46 | 46 ✅ |
+| BountyJudgeFuzzTest   | 4 | 4 ✅ |
 | RitualBountyJudgeTest (Track 2) | 13 | 13 ✅ |
 | RitualMsTimestampTest (ms normalisation) | 2 | 2 ✅ |
 
@@ -427,7 +436,7 @@ In a fair bounty system, the bounty description, rubric, deadlines, and prize am
 |------|-------|-------------|
 | `contracts/BountyJudge.sol` | Required | Commit-reveal bounty judge with configurable precompile |
 | `contracts/RitualBountyJudge.sol` | Advanced | Ritual TEE encrypted submissions with attestation verification |
-| `test/BountyJudge.t.sol` | Both | 60 test cases (45 + 13 + 2), all passing |
+| `test/BountyJudge.t.sol` | Both | 65 test cases (49 + 13 + 2), all passing |
 | `script/Deploy.s.sol` | Both | Foundry deploy script → Ritual Chain (chainId 1979) |
 | `README.md` | Both | Lifecycle, architecture, test plan, reflection, deployment |
 
