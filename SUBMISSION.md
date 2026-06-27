@@ -10,7 +10,7 @@ self-contained Foundry project (forge-std vendored, no submodule init needed).
 
 ```bash
 cd bounty-judge
-forge test            # 54/54 passing (forge build && forge test -vvv)
+forge test            # 60/60 passing (forge build && forge test -vvv)
 ```
 
 ## Files
@@ -19,7 +19,7 @@ forge test            # 54/54 passing (forge build && forge test -vvv)
 |------|-------|---------|
 | `bounty-judge/contracts/BountyJudge.sol` | Required (Track 1) | Commit-reveal bounty judge, configurable LLM precompile |
 | `bounty-judge/contracts/RitualBountyJudge.sol` | Advanced (Track 2) | Ritual TEE encrypted submissions + attestation verify |
-| `bounty-judge/test/BountyJudge.t.sol` | Both | 54 tests (42 + 10 + 2), all passing |
+| `bounty-judge/test/BountyJudge.t.sol` | Both | 60 tests (45 + 13 + 2), all passing |
 | `bounty-judge/script/Deploy.s.sol` | Both | Foundry deploy script → Ritual Chain (chainId 1979) |
 | `bounty-judge/README.md` | Both | Lifecycle, architecture, honesty notes, reflection |
 | `bounty-judge/.deploy-info.txt` | — | Deploy addresses + TX hashes on Ritual Chain |

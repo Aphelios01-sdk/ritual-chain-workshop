@@ -306,7 +306,7 @@ confirms second-based deadlines succeed).
 
 ## Test Results
 
-**54 tests, 0 failed, 0 skipped** (verified with `forge test -vvv`):
+**60 tests, 0 failed, 0 skipped** (verified with `forge test -vvv`):
 
 | Suite | Tests | Passed |
 |-------|-------|--------|
@@ -395,9 +395,9 @@ Rather than over-claiming, here is exactly what this submission does and does no
 
 3. **Track 2 is a design sketch.** `RitualBountyJudge` demonstrates the
    TEE-attested flow (encrypted submit → batch judging → attestation verify →
-   finalize) but intentionally omits reward escrow/payout: `finalizeWinner()`
-   locks the winner index without transferring RITUAL. This matches the rule that
-   the advanced track may be a design document.
+   finalize) with reward escrow and payout. Some production features
+   (access control refinement, multi-verifier support) are left as exercises;
+   this matches the rule that the advanced track may focus on design.
 
 4. **`block.timestamp`-based deadlines.** Validators can nudge
    `block.timestamp` by a few seconds; the deadlines are day-scaled windows so
@@ -426,7 +426,7 @@ In a fair bounty system, the bounty description, rubric, deadlines, and prize am
 |------|-------|-------------|
 | `contracts/BountyJudge.sol` | Required | Commit-reveal bounty judge with configurable precompile |
 | `contracts/RitualBountyJudge.sol` | Advanced | Ritual TEE encrypted submissions with attestation verification |
-| `test/BountyJudge.t.sol` | Both | 54 test cases (42 + 10 + 2), all passing |
+| `test/BountyJudge.t.sol` | Both | 60 test cases (45 + 13 + 2), all passing |
 | `script/Deploy.s.sol` | Both | Foundry deploy script → Ritual Chain (chainId 1979) |
 | `README.md` | Both | Lifecycle, architecture, test plan, reflection, deployment |
 

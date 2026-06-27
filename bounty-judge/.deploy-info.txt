@@ -26,7 +26,7 @@ TX Hash: 0x41fe84471d185365c65eeee4424c9f43874e4fe7d26ca330855498244abed23c
 Constructor: none
 
 --- Tests ---
-54 passing (42 BountyJudge + 10 RitualBountyJudge + 2 RitualMsTimestamp)
+60 passing (45 BountyJudge + 13 RitualBountyJudge + 2 RitualMsTimestamp)
 
 
 --- Why Ritual Chain (not Base) ---
