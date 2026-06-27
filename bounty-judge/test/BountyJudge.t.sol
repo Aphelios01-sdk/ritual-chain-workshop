@@ -1238,44 +1238,91 @@ contract RitualBountyJudgeFuzzTest is Test {
 // ─── Foundry Invariant Tests (BountyJudge) ───
 // Foundry runs these after random sequences of function calls (targets)
 // to verify global properties hold at every state transition.
+// ─── Handler: wraps BountyJudge calls so the fuzzer never hits a blind revert.
+//      The handler itself is the participant (msg.sender = address(this)) —
+//      Foundry's fuzzer calls random handler functions, the handler forwards
+//      to the judge only when preconditions are met.
+contract BountyJudgeInvariantHandler {
+    BountyJudge public judge;
+    uint256   public bountyId;
+    Vm private constant vm = Vm(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);
+
+    constructor(BountyJudge _j, uint256 _id) { judge = _j; bountyId = _id; }
+
+    /// ── Fuzzable: commit with random answer + salt ──
+    function commit(string calldata answer, bytes32 salt) external {
+        (,,,, uint256 subDead,,,,) = judge.getBountyCore(bountyId);
+        if (block.timestamp > subDead) return;
+        bytes32 c = keccak256(abi.encodePacked(answer, salt, address(this), bountyId));
+        try judge.submitCommitment(bountyId, c) {} catch {}
+    }
+
+    /// ── Fuzzable: reveal after the submission window ──
+    function reveal(string calldata answer, bytes32 salt) external {
+        (,,,, uint256 subDead, uint256 revDead,,,) = judge.getBountyCore(bountyId);
+        if (block.timestamp <= subDead || block.timestamp > revDead) return;
+        try judge.revealAnswer(bountyId, answer, salt) {} catch {}
+    }
+
+    /// ── Fuzzable: advance time — the key that unlocks the reveal phase ──
+    function warpToRevealPhase() external {
+        (,,,, uint256 subDead,,,,) = judge.getBountyCore(bountyId);
+        if (block.timestamp <= subDead) {
+            vm.warp(subDead + 1);
+        }
+    }
+
+    function warpPastRevealDeadline() external {
+        (,,,,, uint256 revDead,,,) = judge.getBountyCore(bountyId);
+        if (block.timestamp <= revDead) {
+            vm.warp(revDead + 1);
+        }
+    }
+}
+
+/// ─── Invariant test: Foundry calls random sequences of handler functions,
+///      then checks the invariants below. Because the handler wraps every
+///      contract call in a precondition check (no blind reverts), the fuzzer
+///      actually explores many commit → warp → reveal → warp paths.
 contract BountyJudgeInvariantTest is Test {
-    BountyJudge judge;
-    uint256 bountyId;
+    BountyJudge                    judge;
+    BountyJudgeInvariantHandler    handler;
+    uint256                        bountyId;
 
     function setUp() public {
         vm.etch(address(0x0802), address(new MockLLMPrecompile()).code);
         judge = new BountyJudge(address(0x0802));
 
-        address owner = address(this);
-        vm.deal(owner, 10 ether);
+        vm.deal(address(this), 10 ether);
         bountyId = judge.createBounty{value: 1 ether}(
-            "invariant", "rubric", block.timestamp + 10 days, block.timestamp + 20 days
+            "invariant", "rubric", block.timestamp + 10, block.timestamp + 100
         );
+
+        handler = new BountyJudgeInvariantHandler(judge, bountyId);
+
+        // Foundry calls EVERY external function on the handler contract.
+        targetContract(address(handler));
     }
 
-    /// @notice Revealed answers are NOT accessible via getSubmission before judging.
+    /// ── Invariants (checked after every handler call) ──
+
     function invariant_NoAnswerLeaksBeforeJudging() public view {
-        // After any sequence of commits/reveals (but before judging),
-        // getSubmission must return an empty answer string for every participant.
         address[] memory parts = judge.getParticipants(bountyId);
         for (uint256 i = 0; i < parts.length; i++) {
             (, string memory answer,) = judge.getSubmission(bountyId, parts[i]);
-            assertEq(answer, "", "invariant: answer hidden before judged");
+            assertEq(answer, "", "answer hidden before judged");
         }
     }
 
-    /// @notice The reward stored in the contract can never exceed the original value.
     function invariant_RewardNeverExceedsOriginal() public view {
         (,,, uint256 reward,,,,,) = judge.getBountyCore(bountyId);
-        assertLe(reward, 1 ether, "invariant: reward never exceeds original");
+        assertLe(reward, 1 ether, "reward never exceeds original");
     }
 
-    /// @notice Phase transitions are monotonic (never go backward).
-    function invariant_PhaseMonotonic() public view {
+    function invariant_PhaseValid() public view {
         (,,,,,,,, BountyJudge.Phase p) = judge.getBountyCore(bountyId);
         assertTrue(
-            p == BountyJudge.Phase.SUBMISSION || p == BountyJudge.Phase.REVEAL || p == BountyJudge.Phase.FINALIZED,
-            "invariant: phase is always valid"
+            p == BountyJudge.Phase.SUBMISSION || p == BountyJudge.Phase.REVEAL || p == BountyJudge.Phase.FINALIZED
         );
     }
 }
