@@ -908,6 +908,22 @@ contract RitualBountyJudgeTest is Test {
         assertEq(scB, 72);
     }
 
+    function testSubmitJudgingResultGasUnderBlockLimit() public {
+        vm.prank(ALICE); rJudge.submitEncryptedAnswer(bountyId, hex"aa");
+        vm.prank(BOB);   rJudge.submitEncryptedAnswer(bountyId, hex"bb");
+        vm.warp(block.timestamp + 2 days);
+
+        address[] memory addrs = new address[](2);
+        addrs[0] = ALICE; addrs[1] = BOB;
+        uint256[] memory scores = new uint256[](2);
+        scores[0] = 88; scores[1] = 72;
+
+        uint256 gasBefore = gasleft();
+        rJudge.submitJudgingResult(bountyId, addrs, scores, bytes("attestation"));
+        uint256 gasUsed = gasBefore - gasleft();
+        assertLt(gasUsed, 500_000, "submitJudgingResult should fit well within block gas limit");
+    }
+
     function testSubmitJudgingInvalidAttestation() public {
         vm.prank(ALICE); rJudge.submitEncryptedAnswer(bountyId, hex"aa");
         vm.warp(block.timestamp + 2 days);
@@ -1018,6 +1034,156 @@ contract RitualBountyJudgeTest is Test {
         vm.prank(CREATOR);
         vm.expectRevert(RitualBountyJudge.NotEligibleForRefund.selector);
         rJudge.refund(bountyId);
+    }
+
+    function testRitualFinalizeBeforeJudging() public {
+        vm.prank(ALICE); rJudge.submitEncryptedAnswer(bountyId, hex"aa");
+        vm.warp(block.timestamp + 2 days);
+
+        // Attempt to finalize before submitJudgingResult → must revert.
+        vm.prank(CREATOR);
+        vm.expectRevert("not in judging");
+        rJudge.finalizeWinner(bountyId, 0);
+    }
+}
+
+// ─── Realistic Ritual TEE Verifier ───
+contract RealisticTeeVerifier {
+    bytes32 public expectedInputHash;
+
+    function setExpectedInput(bytes32 _hash) external {
+        expectedInputHash = _hash;
+    }
+
+    function verifyAttestation(
+        bytes32 enclaveCodeHash,
+        bytes calldata input,
+        bytes calldata, bytes calldata
+    ) external view returns (bool) {
+        return keccak256(input) == expectedInputHash && enclaveCodeHash != bytes32(0);
+    }
+}
+
+contract RitualTeeIntegrationTest is Test {
+    RealisticTeeVerifier verifier;
+    RitualBountyJudge rJudge;
+    bytes32 constant ENCLAVE = bytes32(uint256(0xcafebabe));
+
+    function setUp() public {
+        verifier = new RealisticTeeVerifier();
+        rJudge = new RitualBountyJudge();
+    }
+
+    function testFullRitualTeeFlow() public {
+        address alice = address(0x1000);
+        address bob   = address(0x2000);
+        address creator = address(0x3000);
+
+        vm.deal(creator, 1 ether);
+        vm.prank(creator);
+        uint256 id = rJudge.createBounty{value: 0.05 ether}(block.timestamp + 1 days, ENCLAVE, address(verifier));
+
+        vm.prank(alice); rJudge.submitEncryptedAnswer(id, hex"deadbeefcafe");
+        vm.prank(bob);   rJudge.submitEncryptedAnswer(id, hex"baadf00d");
+        assertEq(rJudge.getParticipants(id).length, 2);
+
+        vm.warp(block.timestamp + 2 days);
+        address[] memory addrs = new address[](2);
+        addrs[0] = alice; addrs[1] = bob;
+        uint256[] memory scores = new uint256[](2);
+        scores[0] = 95; scores[1] = 67;
+
+        bytes memory expectedInput = abi.encode(id, addrs, scores);
+        verifier.setExpectedInput(keccak256(expectedInput));
+        rJudge.submitJudgingResult(id, addrs, scores, hex"deadbeef");
+
+        (,,uint256 scA) = rJudge.getSubmissionEncrypted(id, alice);
+        (,,uint256 scB) = rJudge.getSubmissionEncrypted(id, bob);
+        assertEq(scA, 95); assertEq(scB, 67);
+
+        uint256 balBefore = alice.balance;
+        vm.prank(creator);
+        rJudge.finalizeWinner(id, 0);
+        assertEq(alice.balance, balBefore + 0.05 ether);
+    }
+
+    function testAttestationRejectedOnWrongInput() public {
+        address alice = address(0x1000);
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        uint256 id = rJudge.createBounty{value: 1}(block.timestamp + 1 days, ENCLAVE, address(verifier));
+        vm.prank(alice); rJudge.submitEncryptedAnswer(id, hex"aa");
+        vm.warp(block.timestamp + 2 days);
+
+        address[] memory addrs = new address[](1);
+        addrs[0] = alice;
+        uint256[] memory scores = new uint256[](1);
+        scores[0] = 99;
+        verifier.setExpectedInput(bytes32(uint256(0xbad)));
+
+        vm.expectRevert("invalid attestation");
+        rJudge.submitJudgingResult(id, addrs, scores, hex"dead");
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+//  Ritual Chain timestamp normalization (ms → seconds)
+//  Ritual reports block.timestamp in MILLISECONDS (~1.78e12).
+//  The contract auto-detects this and normalises to seconds so that
+//  standard SECOND-based deadlines work on any chain.
+// ═══════════════════════════════════════════════════════
+contract RitualBountyJudgeFuzzTest is Test {
+    MockRitualVerifier verifier;
+    RitualBountyJudge rJudge;
+    bytes32 constant ENCLAVE = bytes32(uint256(0xdeadbeef));
+
+    function setUp() public {
+        verifier = new MockRitualVerifier();
+        rJudge = new RitualBountyJudge();
+    }
+
+    function testFuzz_SubmitEncryptedWithRandomData(bytes calldata data) public {
+        vm.assume(data.length > 0 && data.length < 200);
+
+        address participant = address(0xBEEF);
+        uint256 id = rJudge.createBounty{value: 1}(block.timestamp + 1 days, ENCLAVE, address(verifier));
+        vm.prank(participant);
+        rJudge.submitEncryptedAnswer(id, data);
+
+        (bytes memory stored,,) = rJudge.getSubmissionEncrypted(id, participant);
+        assertEq(stored, data);
+    }
+
+    function testFuzz_AttestationRejectsIfVerifierSaysInvalid(uint8 badVal) public {
+        vm.assume(badVal > 0);
+
+        address participant = address(uint160(badVal));
+        uint256 id = rJudge.createBounty{value: 1}(block.timestamp + 1 days, ENCLAVE, address(verifier));
+        vm.prank(participant);
+        rJudge.submitEncryptedAnswer(id, hex"aa");
+        vm.warp(block.timestamp + 2 days);
+
+        verifier.setValid(false);
+
+        address[] memory addrs = new address[](1);
+        addrs[0] = participant;
+        uint256[] memory scores = new uint256[](1);
+        scores[0] = 99;
+
+        vm.expectRevert("invalid attestation");
+        rJudge.submitJudgingResult(id, addrs, scores, hex"deadbeef");
+    }
+
+    function testFuzz_BountyCountIncrements() public {
+        uint256 before = rJudge.bountyCount();
+        rJudge.createBounty{value: 1}(block.timestamp + 1 days, ENCLAVE, address(verifier));
+        assertEq(rJudge.bountyCount(), before + 1);
+    }
+
+    function testFuzz_PhaseDoesNotRegress() public {
+        uint256 id = rJudge.createBounty{value: 1}(block.timestamp + 1 days, ENCLAVE, address(verifier));
+        (,,,,RitualBountyJudge.Phase p0,) = rJudge.getBounty(id);
+        assertTrue(p0 == RitualBountyJudge.Phase.SUBMISSION);
     }
 }
 

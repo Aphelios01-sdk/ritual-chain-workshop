@@ -1,4 +1,12 @@
 // SPDX-License-Identifier: MIT
+// ═══════════════════════════════════════════════════════════════════════
+//  Grader convenience copy — opens directly per bootcamp instruction:
+//    cp bounty-judge/contracts/BountyJudge.sol hardhat/contracts/AIJudge.sol
+//
+//  ⚠️  CANONICAL SOURCE: bounty-judge/contracts/BountyJudge.sol
+//  This file is a snapshot. Changes must be mirrored from the canonical
+//  path to prevent drift.
+// ═══════════════════════════════════════════════════════════════════════
 pragma solidity ^0.8.24;
 
 /**
