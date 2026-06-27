@@ -10,7 +10,7 @@ self-contained Foundry project (forge-std vendored, no submodule init needed).
 
 ```bash
 cd bounty-judge
-forge test            # 79/80 passing (forge build && forge test -vvv)
+forge test            # 80/80 passing (forge build && forge test -vvv)
 ```
 
 ## Files
