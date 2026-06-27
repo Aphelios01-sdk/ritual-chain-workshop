@@ -222,7 +222,8 @@ contract BountyJudge is PrecompileConsumer {
         require(_submissionDeadline > _now(), "submission deadline in past");
         require(_revealDeadline > _submissionDeadline, "reveal before submission");
 
-        bountyId = nextBountyId++;
+        bountyId = nextBountyId;
+        unchecked { nextBountyId++; }
         Bounty storage b = bounties[bountyId];
 
         b.owner              = payable(msg.sender);
@@ -302,7 +303,7 @@ contract BountyJudge is PrecompileConsumer {
 
         sub.answer   = answer;
         sub.revealed = true;
-        b.revealedCount++;
+        unchecked { b.revealedCount++; }
 
         emit AnswerRevealed(bountyId, msg.sender);
     }

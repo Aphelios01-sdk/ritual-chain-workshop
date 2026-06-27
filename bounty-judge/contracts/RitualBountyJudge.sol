@@ -56,6 +56,8 @@ contract RitualBountyJudge {
     error OnlyCreator();
     error WinnerAlreadyFinalized();
     error NotEnoughSubmissions();
+    error PaymentFailed();
+    error NotEligibleForRefund();
 
     // ────────────── Enums ──────────────
     enum Phase { SUBMISSION, JUDGING, FINALIZED }
@@ -68,13 +70,14 @@ contract RitualBountyJudge {
     }
 
     struct Bounty {
-        address             creator;
+        address payable    creator;
         uint256             submissionDeadline;
         uint256             participantCount;
         uint256             winnerIndex;
+        uint256             reward;              // locked in contract
         Phase               phase;
-        bytes32             enclaveCodeHash;    // Pinned TEE enclave measurement
-        IRitualVerifier     verifier;           // Ritual attestation contract
+        bytes32             enclaveCodeHash;
+        IRitualVerifier     verifier;
         mapping(address => Submission) submissions;
         address[]           participants;
     }
@@ -82,6 +85,14 @@ contract RitualBountyJudge {
     // ────────────── State ──────────────
     mapping(uint256 => Bounty) public bounties;
     uint256 public bountyCount;
+
+    uint256 private _lock = 1;
+    modifier nonReentrant() {
+        require(_lock == 1, "reentrant");
+        _lock = 2;
+        _;
+        _lock = 1;
+    }
 
     // Ritual Chain reports block.timestamp in MILLISECONDS (verified on-chain).
     // Normalise to seconds so callers always pass SECOND-based deadlines.
@@ -94,10 +105,11 @@ contract RitualBountyJudge {
     }
 
     // ────────────── Events ──────────────
-    event BountyCreated(uint256 bountyId, address creator, uint256 deadline, bytes32 enclaveCodeHash);
+    event BountyCreated(uint256 bountyId, address creator, uint256 deadline, uint256 reward, bytes32 enclaveCodeHash);
     event EncryptedSubmission(uint256 bountyId, address participant);
     event JudgingExecuted(uint256 bountyId, uint256 scoreCount, bytes attestation);
-    event WinnerFinalized(uint256 bountyId, address winner, uint256 score);
+    event WinnerFinalized(uint256 bountyId, address winner, uint256 score, uint256 reward);
+    event RefundClaimed(uint256 bountyId, address creator, uint256 reward);
 
     // ────────────── Constructor ──────────────
     constructor() {
@@ -122,19 +134,22 @@ contract RitualBountyJudge {
         address _verifier
     )
         external
+        payable
         returns (uint256 bountyId)
     {
         require(_submissionDeadline > _now(), "deadline in past");
+        require(msg.value > 0, "reward required");
 
-        bountyId = ++bountyCount;
+        unchecked { bountyId = ++bountyCount; }
         Bounty storage b = bounties[bountyId];
-        b.creator          = msg.sender;
+        b.creator          = payable(msg.sender);
         b.submissionDeadline = _submissionDeadline;
+        b.reward           = msg.value;
         b.enclaveCodeHash  = _enclaveCodeHash;
         b.verifier         = IRitualVerifier(_verifier);
         b.phase            = Phase.SUBMISSION;
 
-        emit BountyCreated(bountyId, msg.sender, _submissionDeadline, _enclaveCodeHash);
+        emit BountyCreated(bountyId, msg.sender, _submissionDeadline, msg.value, _enclaveCodeHash);
     }
 
     // ────────────── Submission Phase ──────────────
@@ -239,6 +254,7 @@ contract RitualBountyJudge {
      */
     function finalizeWinner(uint256 bountyId, uint256 winnerIndex)
         external
+        nonReentrant
     {
         Bounty storage b = bounties[bountyId];
         require(msg.sender == b.creator, "only creator");
@@ -250,8 +266,32 @@ contract RitualBountyJudge {
 
         b.winnerIndex = winnerIndex;
         b.phase       = Phase.FINALIZED;
+        uint256 reward = b.reward;
+        b.reward      = 0;
 
-        emit WinnerFinalized(bountyId, winner, b.submissions[winner].score);
+        (bool ok, ) = payable(winner).call{value: reward}("");
+        require(ok, "payment failed");
+
+        emit WinnerFinalized(bountyId, winner, b.submissions[winner].score, reward);
+    }
+
+    /// @notice Creator reclaims reward when no valid submissions exist after deadline.
+    function refund(uint256 bountyId)
+        external
+        nonReentrant
+    {
+        Bounty storage b = bounties[bountyId];
+        require(msg.sender == b.creator, "only creator");
+        require(_now() > b.submissionDeadline, "deadline not passed");
+        require(b.phase == Phase.SUBMISSION, "already judging");
+        if (b.participantCount != 0) revert NotEligibleForRefund();
+
+        b.phase = Phase.FINALIZED;
+        uint256 reward = b.reward;
+        b.reward = 0;
+        (bool ok, ) = payable(msg.sender).call{value: reward}("");
+        require(ok, "refund failed");
+        emit RefundClaimed(bountyId, msg.sender, reward);
     }
 
     // ────────────── Views ──────────────
