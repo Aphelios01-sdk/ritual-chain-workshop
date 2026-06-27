@@ -255,22 +255,22 @@ precompile `0x0000000000000000000000000000000000000802` and deploys
 
 ### Commit-reveal flow status (Ritual Chain testnet)
 
-The commit-reveal flow was **proven live on-chain** on prior deployments of
-this contract; the current deployment is a fresh instance with identical logic.
+The full commit-reveal lifecycle was **executed live on-chain** on the
+deployed contract (`0xcBd6a174...`) — bounty 1, single participant:
 
-| Step | Status |
-|------|--------|
-| `createBounty` (second-based deadlines) | ✅ tested live |
-| `submitCommitment` ×2 | ✅ tested live |
-| `revealAnswer` ×2 (commitment verified) | ✅ tested live |
-| `judgeAll` (LLM precompile 0x0802) | ⏳ exercised in mocked test suite |
-| `finalizeWinner` | ⏳ after `judgeAll` |
+| Step | TX Hash | Status |
+|------|---------|--------|
+| `createBounty` (0.0001 RITUAL, second-based) | `0x1c52c8ac3dee807ece322f7e43e142387650d5659986dbc863c01752ee7dfcb2` | ✅ |
+| `submitCommitment` | `0x3b6b7c01a92314374eeb8645b196907166aa990afdc599322089bd6a0259802d` | ✅ |
+| `revealAnswer` (commitment verified) | `0x2ab4f292b1439c08a2794c89392807e931798ea2142e39f5721d7db3c48e3fb7` | ✅ |
+| `judgeAll` (LLM precompile 0x0802) | `0x2f2ac785d3a384841f7b5e082cc8107d26d5cf0e8ccf828d22723c7c8b16ac01` | ✅ |
+| `finalizeWinner` (reward paid) | `0x273914ec6d03489dee88be48f8a08cf3a71ce5850159e013d7e0cd2cde694430` | ✅ |
 
-The **commit-reveal core** — the anti-cheating mechanism the assignment
-requires — is functionally verified: commitments hidden during submission,
-reveals verified against `keccak256(answer, salt, msg.sender, bountyId)`.
-`judgeAll`/`finalizeWinner` are exercised in the 77-test suite with a mocked
-precompile.
+On-chain verification: `judged = true`, `answersHash` + `inputHash` stored
+via `getJudgingAttestation(1)`, reward transferred to winner.
+
+\> `judgeAll`/`finalizeWinner` are also fully exercised in the 77-test suite
+\> with a mocked precompile.
 
 > On Ritual Chain every step is functional, including `judgeAll` (LLM precompile)
 > and `finalizeWinner`. This is the key advantage over a Base deployment, where
