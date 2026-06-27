@@ -319,9 +319,11 @@ confirms second-based deadlines succeed).
 
 | Suite | Tests | Passed |
 |-------|-------|--------|
-| BountyJudgeTest       | 46 ✅ |
-| BountyJudgeFuzzTest   | 4 ✅ |
-| RitualBountyJudgeTest     | 15 ✅ |
+| BountyJudgeTest (Track 1) | 46 | 46 ✅ |
+| BountyJudgeFuzzTest (fuzz + invariant) | 4 | 4 ✅ |
+| RitualBountyJudgeTest (Track 2) | 15 | 15 ✅ |
+| RitualBountyJudgeFuzzTest (Track 2 fuzz) | 4 | 4 ✅ |
+| RitualTeeIntegrationTest (Track 2 TEE) | 2 | 2 ✅ |
 | RitualMsTimestampTest (ms normalisation) | 2 | 2 ✅ |
 
 ### Running tests
