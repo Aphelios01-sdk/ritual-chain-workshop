@@ -7,7 +7,7 @@ Extends the workshop AIJudge contract (`github.com/cozfuttu/ritual-chain-worksho
 > **TL;DR** — Two Solidity contracts. `BountyJudge` adds commit-reveal (hash →
 > reveal → batch LLM judge) to the workshop's AI bounty judge, keeping
 > submissions hidden until judging. `RitualBountyJudge` goes further with
-> encrypted TEE submissions and on-chain attestation. 60+ tests, all passing.
+> encrypted TEE submissions and on-chain attestation. 65+ tests, all passing.
 > **Deployed on Ritual Chain testnet** (chainId 1979) at
 > `0xcBd6a1742a1f15309B3458F47aFBcCfb1CA8da99`.
 
@@ -278,7 +278,7 @@ reveals verified against `keccak256(answer, salt, msg.sender, bountyId)`.
 \>    the deployer wallet needs pre-funding via the Ritual testnet faucet.
 \>    The contract path is correct (verified against the workshop's request
 \>    encoding and the same output decode rivaleuc uses).
-\> `judgeAll`/`finalizeWinner` are fully exercised in the 54-test suite
+\> `judgeAll`/`finalizeWinner` are fully exercised in the 65-test suite
 \> with a mocked precompile.
 
 > On Ritual Chain every step is functional, including `judgeAll` (LLM precompile)
