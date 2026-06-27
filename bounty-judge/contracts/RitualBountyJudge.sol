@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.24;
 
 /**
  * @title  RitualBountyJudge
@@ -172,7 +172,7 @@ contract RitualBountyJudge {
         Bounty storage b = bounties[bountyId];
         require(b.phase == Phase.SUBMISSION, "not in submission");
         require(_now() <= b.submissionDeadline, "deadline passed");
-        require(!b.submissions[msg.sender].submitted, "already submitted");
+        if (b.submissions[msg.sender].submitted) revert AlreadySubmitted();
 
         b.submissions[msg.sender] = Submission({
             encryptedAnswer: encryptedAnswer,

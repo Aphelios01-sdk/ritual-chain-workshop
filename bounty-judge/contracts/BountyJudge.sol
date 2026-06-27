@@ -68,6 +68,7 @@ contract BountyJudge is PrecompileConsumer {
     error SubmissionDeadlinePassed();
     error StillInSubmission();
     error RevealDeadlinePassed();
+    error RevealDeadlineNotPassed();
     error AlreadySubmitted();
     error AlreadyRevealed();
     error InvalidCommitment();
@@ -251,9 +252,9 @@ contract BountyJudge is PrecompileConsumer {
     {
         Bounty storage b = bounties[bountyId];
         require(b.phase == Phase.SUBMISSION, "not in submission");
-        require(_now() <= b.submissionDeadline, "submission deadline passed");
+        if (_now() > b.submissionDeadline) revert SubmissionDeadlinePassed();
         require(commitment != bytes32(0), "empty commitment");
-        require(b.submissions[msg.sender].commitment == bytes32(0), "already submitted");
+        if (b.submissions[msg.sender].commitment != bytes32(0)) revert AlreadySubmitted();
         require(b.participants.length < MAX_SUBMISSIONS, "too many submissions");
 
         b.submissions[msg.sender].commitment = commitment;
@@ -287,11 +288,11 @@ contract BountyJudge is PrecompileConsumer {
         // Cannot reveal after finalized
         if (b.phase == Phase.FINALIZED) revert AlreadyFinalized();
         // Cannot reveal after reveal deadline
-        require(_now() <= b.revealDeadline, "reveal deadline passed");
+        if (_now() > b.revealDeadline) revert RevealDeadlinePassed();
 
         Submission storage sub = b.submissions[msg.sender];
-        require(sub.commitment != bytes32(0), "no commitment");
-        require(!sub.revealed, "already revealed");
+        if (sub.commitment == bytes32(0)) revert NotSubmitted();
+        if (sub.revealed) revert AlreadyRevealed();
 
         // Auto-advance phase
         if (b.phase == Phase.SUBMISSION) {
@@ -300,7 +301,7 @@ contract BountyJudge is PrecompileConsumer {
 
         // Verify: keccak256(abi.encodePacked(answer, salt, msg.sender, bountyId))
         bytes32 computed = keccak256(abi.encodePacked(answer, salt, msg.sender, bountyId));
-        require(computed == sub.commitment, "invalid commitment");
+        if (computed != sub.commitment) revert InvalidCommitment();
 
         sub.answer   = answer;
         sub.revealed = true;
@@ -344,13 +345,13 @@ contract BountyJudge is PrecompileConsumer {
     {
         Bounty storage b = bounties[bountyId];
 
-        require(!b.judged, "already judged");
-        require(!b.finalized, "already finalized");
-        require(_now() > b.revealDeadline, "reveal deadline not passed");
+        if (b.judged) revert AlreadyJudged();
+        if (b.finalized) revert AlreadyFinalized();
+        if (_now() <= b.revealDeadline) revert RevealDeadlineNotPassed();
 
         // Count revealed submissions for sanity check (O(1))
         uint256 revealedCount = b.revealedCount;
-        require(revealedCount > 0, "no revealed submissions");
+        if (revealedCount == 0) revert NoSubmissions();
 
         // Bind this judging call to the canonical revealed-answer set (auditability).
         bytes32 answersHash = _hashRevealedAnswers(b);
@@ -378,7 +379,7 @@ contract BountyJudge is PrecompileConsumer {
         for (uint256 i = 0; i < parts.length; i++) {
             Submission storage sub = b.submissions[parts[i]];
             if (sub.revealed) {
-                bundle = abi.encodePacked(bundle, parts[i], sub.answer);
+                bundle = abi.encode(bundle, parts[i], sub.answer);
             }
         }
         return keccak256(bundle);
@@ -399,7 +400,7 @@ contract BountyJudge is PrecompileConsumer {
         Bounty storage b = bounties[bountyId];
 
         if (b.judged || b.finalized) revert AlreadyFinalized();
-        if (_now() <= b.revealDeadline) revert RevealDeadlinePassed();
+        if (_now() <= b.revealDeadline) revert RevealDeadlineNotPassed();
         if (b.revealedCount != 0) revert NotEligibleForRefund();
 
         b.finalized = true;
@@ -408,7 +409,7 @@ contract BountyJudge is PrecompileConsumer {
         b.reward = 0;
 
         (bool ok, ) = payable(msg.sender).call{value: reward}("");
-        require(ok, "refund failed");
+        if (!ok) revert PaymentFailed();
 
         emit RefundClaimed(bountyId, msg.sender, reward);
     }
@@ -430,12 +431,12 @@ contract BountyJudge is PrecompileConsumer {
     {
         Bounty storage b = bounties[bountyId];
 
-        require(b.judged, "not judged");
-        require(!b.finalized, "already finalized");
-        require(winnerIndex < b.participants.length, "invalid index");
+        if (!b.judged) revert NotJudged();
+        if (b.finalized) revert AlreadyFinalized();
+        if (winnerIndex >= b.participants.length) revert InvalidWinnerIndex();
 
         address winnerAddr = b.participants[winnerIndex];
-        require(b.submissions[winnerAddr].revealed, "submission not revealed");
+        if (!b.submissions[winnerAddr].revealed) revert NotSubmitted();
 
         b.finalized    = true;
         b.winnerIndex  = winnerIndex;
@@ -444,7 +445,7 @@ contract BountyJudge is PrecompileConsumer {
         b.reward       = 0;
 
         (bool ok, ) = payable(winnerAddr).call{value: reward}("");
-        require(ok, "payment failed");
+        if (!ok) revert PaymentFailed();
 
         emit WinnerFinalized(bountyId, winnerIndex, winnerAddr, reward);
     }

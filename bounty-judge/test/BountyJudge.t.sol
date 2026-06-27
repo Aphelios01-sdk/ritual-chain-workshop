@@ -172,7 +172,7 @@ contract BountyJudgeTest is Test {
         commit(ALICE, "dup", SALT_A);
 
         vm.prank(ALICE);
-        vm.expectRevert("already submitted");
+        vm.expectRevert(BountyJudge.AlreadySubmitted.selector);
         judge.submitCommitment(bountyId, bytes32(uint256(0x999)));
     }
 
@@ -186,7 +186,7 @@ contract BountyJudgeTest is Test {
         warpToReveal();
 
         vm.prank(CAROL);
-        vm.expectRevert("submission deadline passed");
+        vm.expectRevert(BountyJudge.SubmissionDeadlinePassed.selector);
         judge.submitCommitment(bountyId, bytes32(uint256(0x1)));
     }
 
@@ -263,7 +263,7 @@ contract BountyJudgeTest is Test {
         warpToReveal();
 
         vm.prank(ALICE);
-        vm.expectRevert("invalid commitment");
+        vm.expectRevert(BountyJudge.InvalidCommitment.selector);
         judge.revealAnswer(bountyId, "secret", SALT_B);
     }
 
@@ -272,7 +272,7 @@ contract BountyJudgeTest is Test {
         warpToReveal();
 
         vm.prank(ALICE);
-        vm.expectRevert("invalid commitment");
+        vm.expectRevert(BountyJudge.InvalidCommitment.selector);
         judge.revealAnswer(bountyId, "wrong", SALT_A);
     }
 
@@ -280,7 +280,7 @@ contract BountyJudgeTest is Test {
         warpToReveal();
 
         vm.prank(ALICE);
-        vm.expectRevert("no commitment");
+        vm.expectRevert(BountyJudge.NotSubmitted.selector);
         judge.revealAnswer(bountyId, "no prior", SALT_A);
     }
 
@@ -290,7 +290,7 @@ contract BountyJudgeTest is Test {
 
         vm.startPrank(ALICE);
         judge.revealAnswer(bountyId, "once", SALT_A);
-        vm.expectRevert("already revealed");
+        vm.expectRevert(BountyJudge.AlreadyRevealed.selector);
         judge.revealAnswer(bountyId, "once", SALT_A);
         vm.stopPrank();
     }
@@ -300,7 +300,7 @@ contract BountyJudgeTest is Test {
         warpPastReveal();
 
         vm.prank(ALICE);
-        vm.expectRevert("reveal deadline passed");
+        vm.expectRevert(BountyJudge.RevealDeadlinePassed.selector);
         judge.revealAnswer(bountyId, "too late", SALT_A);
     }
 
@@ -321,7 +321,7 @@ contract BountyJudgeTest is Test {
 
         string memory longAnswer = new string(2001);
         vm.prank(ALICE);
-        vm.expectRevert("invalid commitment");
+        vm.expectRevert(BountyJudge.InvalidCommitment.selector);
         judge.revealAnswer(bountyId, longAnswer, SALT_A);
     }
 
@@ -389,14 +389,12 @@ contract BountyJudgeTest is Test {
         vm.prank(OWNER);
         judge.judgeAll(bountyId, llmPrompt);
 
-        // Recompute the canonical answers hash the same way the contract does.
-        bytes32 expectedAnswers = keccak256(
-            abi.encodePacked(
-                abi.encode("Evaluate correctness, gas efficiency, and code clarity."),
-                ALICE, "A answer",
-                BOB,   "B answer"
-            )
-        );
+        // Recompute the canonical answers hash the same way the contract does
+        // (iterative abi.encode).
+        bytes memory bundle = abi.encode("Evaluate correctness, gas efficiency, and code clarity.");
+        bundle = abi.encode(bundle, ALICE, "A answer");
+        bundle = abi.encode(bundle, BOB,   "B answer");
+        bytes32 expectedAnswers = keccak256(bundle);
         (bytes32 answersHash, bytes32 inputHash) = judge.getJudgingAttestation(bountyId);
         assertEq(answersHash, expectedAnswers, "answersHash bound to revealed set");
         assertEq(inputHash, keccak256(llmPrompt), "inputHash bound to submitted prompt");
@@ -446,7 +444,7 @@ contract BountyJudgeTest is Test {
         // still within reveal window
 
         vm.prank(OWNER);
-        vm.expectRevert("reveal deadline not passed");
+        vm.expectRevert(BountyJudge.RevealDeadlineNotPassed.selector);
         judge.judgeAll(bountyId, bytes("prompt"));
     }
 
@@ -459,7 +457,7 @@ contract BountyJudgeTest is Test {
         vm.startPrank(OWNER);
         judge.judgeAll(bountyId, bytes("first"));
 
-        vm.expectRevert("already judged");
+        vm.expectRevert(BountyJudge.AlreadyJudged.selector);
         judge.judgeAll(bountyId, bytes("second"));
         vm.stopPrank();
     }
@@ -470,7 +468,7 @@ contract BountyJudgeTest is Test {
         warpPastReveal();
 
         vm.prank(OWNER);
-        vm.expectRevert("no revealed submissions");
+        vm.expectRevert(BountyJudge.NoSubmissions.selector);
         judge.judgeAll(bountyId, bytes("prompt"));
     }
 
@@ -517,7 +515,7 @@ contract BountyJudgeTest is Test {
         // skip judgeAll
 
         vm.prank(OWNER);
-        vm.expectRevert("not judged");
+        vm.expectRevert(BountyJudge.NotJudged.selector);
         judge.finalizeWinner(bountyId, 0);
     }
 
@@ -532,7 +530,7 @@ contract BountyJudgeTest is Test {
 
         // Try to finalize ALICE (index 0, unrevealed)
         vm.prank(OWNER);
-        vm.expectRevert("submission not revealed");
+        vm.expectRevert(BountyJudge.NotSubmitted.selector);
         judge.finalizeWinner(bountyId, 0);
     }
 
@@ -544,7 +542,7 @@ contract BountyJudgeTest is Test {
         vm.prank(OWNER); judge.finalizeWinner(bountyId, 0);
 
         vm.prank(OWNER);
-        vm.expectRevert("already finalized");
+        vm.expectRevert(BountyJudge.AlreadyFinalized.selector);
         judge.finalizeWinner(bountyId, 0);
     }
 
@@ -585,7 +583,7 @@ contract BountyJudgeTest is Test {
         commit(ALICE, "x", SALT_A);
         // still within reveal window
         vm.prank(OWNER);
-        vm.expectRevert(BountyJudge.RevealDeadlinePassed.selector);
+        vm.expectRevert(BountyJudge.RevealDeadlineNotPassed.selector);
         judge.refund(bountyId);
     }
 
@@ -656,7 +654,7 @@ contract BountyJudgeTest is Test {
 
         // Carol reveals with WRONG salt → revert
         vm.prank(CAROL);
-        vm.expectRevert("invalid commitment");
+        vm.expectRevert(BountyJudge.InvalidCommitment.selector);
         judge.revealAnswer(bountyId, "answer C", bytes32(uint256(0xdead)));
 
         warpPastReveal();
@@ -698,7 +696,7 @@ contract BountyJudgeTest is Test {
 
         // Alice reveals as herself — hash won't match because sender is BOB in commitment
         vm.prank(ALICE);
-        vm.expectRevert("invalid commitment");
+        vm.expectRevert(BountyJudge.InvalidCommitment.selector);
         judge.revealAnswer(bountyId, "secret", SALT_A);
     }
 
@@ -742,7 +740,7 @@ contract BountyJudgeTest is Test {
 
         // Only index 0 exists (1 participant). Out-of-range index must revert.
         vm.prank(OWNER);
-        vm.expectRevert("invalid index");
+        vm.expectRevert(BountyJudge.InvalidWinnerIndex.selector);
         judge.finalizeWinner(bountyId, 1);
     }
 }
@@ -884,7 +882,7 @@ contract RitualBountyJudgeTest is Test {
         rJudge.submitEncryptedAnswer(bountyId, hex"01");
 
         vm.prank(ALICE);
-        vm.expectRevert("already submitted");
+        vm.expectRevert(BountyJudge.AlreadySubmitted.selector);
         rJudge.submitEncryptedAnswer(bountyId, hex"02");
     }
 
