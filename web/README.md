@@ -54,7 +54,7 @@ pnpm start
 
 ```
 src/
-  abi/AIJudge.ts             BountyJudge v3 ABI (39 entries)
+  abi/AIJudge.ts             BountyJudge ABI (39 entries)
   config/
     contract.ts              Address + executor + chain id
     wagmi.ts                 Custom Ritual Chain + wagmi
