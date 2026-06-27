@@ -354,6 +354,7 @@ Tests mock the LLM precompile at `0x0802` via `vm.etch` with a fallback contract
 | Refund with zero reveals | Owner reclaims reward |
 | Refund blocked when any answer revealed | `NotEligibleForRefund` revert |
 | Refund after finalized | `AlreadyFinalized` revert |
+| Refund after judged (not yet finalized) | `AlreadyFinalized` revert |
 | MAX_SUBMISSIONS exceeded (51st commit) | `too many submissions` revert |
 | Privacy gate before judge | `getSubmission` returns `""` for answer |
 | Privacy gate after judge | `getSubmission` returns plaintext answer |
