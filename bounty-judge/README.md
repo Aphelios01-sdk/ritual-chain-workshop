@@ -268,6 +268,9 @@ deployed contract (`0xcBd6a174...`) — bounty 1, single participant:
 
 On-chain verification: `judged = true`, `answersHash` + `inputHash` stored
 via `getJudgingAttestation(1)`, reward transferred to winner.
+The `aiReview` bytes are empty for this call — a known consequence of Ritual's
+async precompile envelope (the LLM output was delivered off-chain); the
+contract correctly stores whatever the precompile returns after decoding.
 
 \> `judgeAll`/`finalizeWinner` are also fully exercised in the 77-test suite
 \> with a mocked precompile.

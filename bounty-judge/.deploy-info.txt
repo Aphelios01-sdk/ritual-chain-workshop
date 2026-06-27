@@ -37,5 +37,5 @@ Ritual Chain (chainId 1979); a Base mainnet deployment could not run judgeAll.
 createBounty     : 0x1c52c8ac3dee807ece322f7e43e142387650d5659986dbc863c01752ee7dfcb2
 submitCommitment : 0x3b6b7c01a92314374eeb8645b196907166aa990afdc599322089bd6a0259802d
 revealAnswer     : 0x2ab4f292b1439c08a2794c89392807e931798ea2142e39f5721d7db3c48e3fb7
-judgeAll         : 0x2f2ac785d3a384841f7b5e082cc8107d26d5cf0e8ccf828d22723c7c8b16ac01 (judged=true, answersHash+inputHash stored)
+judgeAll         : 0x2f2ac785d3a384841f7b5e082cc8107d26d5cf0e8ccf828d22723c7c8b16ac01 (judged=true, answersHash+inputHash stored; tx receipt status=0 due to Ritual async delivery — contract state is correct)
 finalizeWinner   : 0x273914ec6d03489dee88be48f8a08cf3a71ce5850159e013d7e0cd2cde694430 (reward paid, status=1)
