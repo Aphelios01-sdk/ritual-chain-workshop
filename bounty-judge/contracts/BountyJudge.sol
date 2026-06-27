@@ -252,6 +252,7 @@ contract BountyJudge is PrecompileConsumer {
         Bounty storage b = bounties[bountyId];
         require(b.phase == Phase.SUBMISSION, "not in submission");
         require(_now() <= b.submissionDeadline, "submission deadline passed");
+        require(commitment != bytes32(0), "empty commitment");
         require(b.submissions[msg.sender].commitment == bytes32(0), "already submitted");
         require(b.participants.length < MAX_SUBMISSIONS, "too many submissions");
 

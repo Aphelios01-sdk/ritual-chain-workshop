@@ -176,6 +176,12 @@ contract BountyJudgeTest is Test {
         judge.submitCommitment(bountyId, bytes32(uint256(0x999)));
     }
 
+    function testCommitmentZeroReverts() public {
+        vm.prank(ALICE);
+        vm.expectRevert("empty commitment");
+        judge.submitCommitment(bountyId, bytes32(0));
+    }
+
     function testCommitAfterDeadline() public {
         warpToReveal();
 
