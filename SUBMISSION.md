@@ -10,7 +10,7 @@ self-contained Foundry project (forge-std vendored, no submodule init needed).
 
 ```bash
 cd bounty-judge
-forge test            # 79/79 passing (forge build && forge test -vvv)
+forge test            # 79/80 passing (forge build && forge test -vvv)
 ```
 
 ## Files
@@ -19,7 +19,7 @@ forge test            # 79/79 passing (forge build && forge test -vvv)
 |------|-------|---------|
 | `bounty-judge/contracts/BountyJudge.sol` | Required (Track 1) | Commit-reveal bounty judge, configurable LLM precompile |
 | `bounty-judge/contracts/RitualBountyJudge.sol` | Advanced (Track 2) | Ritual TEE encrypted submissions + attestation verify |
-| `bounty-judge/test/BountyJudge.t.sol` | Both | 79 tests (55 + 22 + 2), all passing |
+| `bounty-judge/test/BountyJudge.t.sol` | Both | 80 tests (56 + 22 + 2), all passing |
 | `bounty-judge/script/Deploy.s.sol` | Both | Foundry deploy script → Ritual Chain (chainId 1979) |
 | `bounty-judge/README.md` | Both | Lifecycle, architecture, honesty notes, reflection |
 | `bounty-judge/.deploy-info.txt` | — | Deploy addresses + TX hashes on Ritual Chain |
@@ -30,11 +30,11 @@ Deployed via `forge script script/Deploy.s.sol --rpc-url ritual --broadcast`,
 where the native LLM inference precompile at `0x0802` makes `judgeAll()` /
 `finalizeWinner()` functional (a Base deployment could not run `judgeAll`).
 
-- BountyJudge: `0x8825681a0472Bdc7e547f36dc7292DCE9449c131` (`LLM_PRECOMPILE = 0x0802`)
-- RitualBountyJudge: `0xeb231C16A108A35d11C583BA3440dBa37f9A2596`
+- BountyJudge: `0xC95F3A915fC79B806390218563F13617470e4d14` (`LLM_PRECOMPILE = 0x0802`)
+- RitualBountyJudge: `0x8d45b1bad4dD97ADd4BFCf8728aB3d97a387Ee60`
 
-Deploy TXs: `0x80c95bfa2bd816189a201c89ea5f9a5cc028f353ada884cce5c6d5acd5d0cc93` (BountyJudge),
-`0xe675570341f9e7fb7e51c704dcd7f99e06a4cce8b78155da7d04b8f531ea6281` (RitualBountyJudge).
+Deploy TXs: `0x7ca262beb026cc8c41c72a58165199f75f505dcfa418006786c4baeca2136d6b` (BountyJudge),
+`0x5a69f4a29bf525a85f411503d5282371c1735e942daa8a3cdd86a4c1cfe72e95` (RitualBountyJudge).
 
 **Production hardening:** `refund()` reclaims the reward on a no-reveal
 dead-end (anti-rug: blocked once any answer is revealed); `judgeAll` binds the

@@ -229,7 +229,7 @@ contract BountyJudgeTest is Test {
         // After judge, answer IS visible.
         warpPastReveal();
         vm.prank(OWNER);
-        judge.judgeAll(bountyId, bytes("Rubric + answers"));
+        judge.judgeAll(bountyId, bytes("Rubric. Submission: secret-answer"));
         (, string memory visible,) = judge.getSubmission(bountyId, ALICE);
         assertEq(visible, "secret-answer");
     }
@@ -428,7 +428,7 @@ contract BountyJudgeTest is Test {
         // After judging: answers are visible.
         warpPastReveal();
         vm.prank(OWNER);
-        judge.judgeAll(bountyId, bytes("Rubric + answers"));
+        judge.judgeAll(bountyId, bytes("Rubric. Submissions: A answer | B answer"));
 
         (, string memory answerA2, ) = judge.getSubmission(bountyId, ALICE);
         (, string memory answerB2, ) = judge.getSubmission(bountyId, BOB);
@@ -444,7 +444,7 @@ contract BountyJudgeTest is Test {
 
         vm.prank(ALICE);
         vm.expectRevert(BountyJudge.NotOwner.selector);
-        judge.judgeAll(bountyId, bytes("prompt"));
+        judge.judgeAll(bountyId, bytes("Rubric. Submission: A"));
     }
 
     function testJudgeAllBeforeRevealDeadline() public {
@@ -455,7 +455,7 @@ contract BountyJudgeTest is Test {
 
         vm.prank(OWNER);
         vm.expectRevert(BountyJudge.RevealDeadlineNotPassed.selector);
-        judge.judgeAll(bountyId, bytes("prompt"));
+        judge.judgeAll(bountyId, bytes("Rubric. Submission: A"));
     }
 
     function testJudgeAllTwice() public {
@@ -465,7 +465,7 @@ contract BountyJudgeTest is Test {
         warpPastReveal();
 
         vm.startPrank(OWNER);
-        judge.judgeAll(bountyId, bytes("first"));
+        judge.judgeAll(bountyId, bytes("Rubric. Submission: A first"));
 
         vm.expectRevert(BountyJudge.AlreadyJudged.selector);
         judge.judgeAll(bountyId, bytes("second"));
@@ -482,7 +482,7 @@ contract BountyJudgeTest is Test {
         MockLLMPrecompile(address(0x0802)).setShouldError(true);
         vm.prank(OWNER);
         vm.expectRevert("model timeout");
-        judge.judgeAll(bountyId, bytes("prompt"));
+        judge.judgeAll(bountyId, bytes("Rubric. Submission: A"));
 
         // judged stays false → owner can retry once the LLM recovers.
         (,,,,,, bool judged,,) = judge.getBountyCore(bountyId);
@@ -491,9 +491,29 @@ contract BountyJudgeTest is Test {
         // Retry succeeds after the LLM recovers.
         MockLLMPrecompile(address(0x0802)).setShouldError(false);
         vm.prank(OWNER);
-        judge.judgeAll(bountyId, bytes("prompt"));
+        judge.judgeAll(bountyId, bytes("Rubric. Submission: A"));
         (,,,,,, bool judged2,,) = judge.getBountyCore(bountyId);
         assertTrue(judged2, "judged true after successful retry");
+    }
+
+    function testJudgeAllRevertsWhenAnswerMissingFromPrompt() public {
+        commit(ALICE, "alice secret", SALT_A);
+        commit(BOB,   "bob secret",   SALT_B);
+        warpToReveal();
+        vm.prank(ALICE); judge.revealAnswer(bountyId, "alice secret", SALT_A);
+        vm.prank(BOB);   judge.revealAnswer(bountyId, "bob secret",   SALT_B);
+        warpPastReveal();
+
+        // Owner tries to drop Bob's answer from the prompt → must revert.
+        vm.prank(OWNER);
+        vm.expectRevert(BountyJudge.AnswerMissingFromPrompt.selector);
+        judge.judgeAll(bountyId, bytes("Rubric. Only: alice secret"));
+
+        // Prompt containing BOTH answers succeeds.
+        vm.prank(OWNER);
+        judge.judgeAll(bountyId, bytes("Rubric. Subs: alice secret | bob secret"));
+        (,,,,,, bool judged,,) = judge.getBountyCore(bountyId);
+        assertTrue(judged, "judged once all answers present in prompt");
     }
 
     function testJudgeAllNoRevealedSubmissions() public {
@@ -503,7 +523,7 @@ contract BountyJudgeTest is Test {
 
         vm.prank(OWNER);
         vm.expectRevert(BountyJudge.NoSubmissions.selector);
-        judge.judgeAll(bountyId, bytes("prompt"));
+        judge.judgeAll(bountyId, bytes("Rubric. Submission: A"));
     }
 
     // ═══════════════ FINALIZE ═══════════════
@@ -515,7 +535,8 @@ contract BountyJudgeTest is Test {
         warpPastReveal();
 
         vm.prank(OWNER);
-        judge.judgeAll(bountyId, bytes("Rubric + Submissions:\n1. winner answer"));
+        judge.judgeAll(bountyId, bytes("Rubric. Submission: winner answer"));
+
 
         uint256 balBefore = ALICE.balance;
 
@@ -536,7 +557,7 @@ contract BountyJudgeTest is Test {
         commit(ALICE, "x", SALT_A);
         warpToReveal(); vm.prank(ALICE); judge.revealAnswer(bountyId, "x", SALT_A);
         warpPastReveal();
-        vm.prank(OWNER); judge.judgeAll(bountyId, bytes("prompt + answers"));
+        vm.prank(OWNER); judge.judgeAll(bountyId, bytes("Rubric. Submission: x"));
 
         vm.prank(ALICE);
         vm.expectRevert(BountyJudge.NotOwner.selector);
@@ -560,7 +581,7 @@ contract BountyJudgeTest is Test {
         vm.prank(BOB); judge.revealAnswer(bountyId, "good", SALT_B);
         warpPastReveal();
         vm.prank(OWNER);
-        judge.judgeAll(bountyId, bytes("prompt + BOB's answer"));
+        judge.judgeAll(bountyId, bytes("Rubric. Submission: good"));
 
         // Try to finalize ALICE (index 0, unrevealed)
         vm.prank(OWNER);
@@ -572,7 +593,7 @@ contract BountyJudgeTest is Test {
         commit(ALICE, "x", SALT_A);
         warpToReveal(); vm.prank(ALICE); judge.revealAnswer(bountyId, "x", SALT_A);
         warpPastReveal();
-        vm.prank(OWNER); judge.judgeAll(bountyId, bytes("prompt + answer"));
+        vm.prank(OWNER); judge.judgeAll(bountyId, bytes("Rubric. Submission: x"));
         vm.prank(OWNER); judge.finalizeWinner(bountyId, 0);
 
         vm.prank(OWNER);
@@ -644,7 +665,7 @@ contract BountyJudgeTest is Test {
         commit(ALICE, "x", SALT_A);
         warpToReveal(); vm.prank(ALICE); judge.revealAnswer(bountyId, "x", SALT_A);
         warpPastReveal();
-        vm.prank(OWNER); judge.judgeAll(bountyId, bytes("p"));
+        vm.prank(OWNER); judge.judgeAll(bountyId, bytes("Rubric. Submission: x"));
 
         vm.prank(OWNER);
         vm.expectRevert(BountyJudge.AlreadyFinalized.selector);
@@ -655,7 +676,7 @@ contract BountyJudgeTest is Test {
         commit(ALICE, "x", SALT_A);
         warpToReveal(); vm.prank(ALICE); judge.revealAnswer(bountyId, "x", SALT_A);
         warpPastReveal();
-        vm.prank(OWNER); judge.judgeAll(bountyId, bytes("p"));
+        vm.prank(OWNER); judge.judgeAll(bountyId, bytes("Rubric. Submission: x"));
         vm.prank(OWNER); judge.finalizeWinner(bountyId, 0);
 
         vm.prank(OWNER);
@@ -697,7 +718,7 @@ contract BountyJudgeTest is Test {
 
         // Owner builds prompt from revealed answers + rubric
         vm.prank(OWNER);
-        judge.judgeAll(bountyId, bytes("Rubric: Best code quality.\n\nSubmissions:\n1. answer A\n2. answer B"));
+        judge.judgeAll(bountyId, bytes("Rubric. Submissions: answer A | answer B"));
 
         (,,,,,, bool judged,,) = judge.getBountyCore(bountyId);
         assertTrue(judged);
@@ -770,7 +791,7 @@ contract BountyJudgeTest is Test {
         warpToReveal();
         vm.prank(ALICE); judge.revealAnswer(bountyId, "x", SALT_A);
         warpPastReveal();
-        vm.prank(OWNER); judge.judgeAll(bountyId, bytes("prompt + answer"));
+        vm.prank(OWNER); judge.judgeAll(bountyId, bytes("Rubric. Submission: x"));
 
         // Only index 0 exists (1 participant). Out-of-range index must revert.
         vm.prank(OWNER);

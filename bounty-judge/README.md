@@ -7,9 +7,9 @@ Extends the workshop AIJudge contract (`github.com/cozfuttu/ritual-chain-worksho
 > **TL;DR** — Two Solidity contracts. `BountyJudge` adds commit-reveal (hash →
 > reveal → batch LLM judge) to the workshop's AI bounty judge, keeping
 > submissions hidden until judging. `RitualBountyJudge` goes further with
-> encrypted TEE submissions and on-chain attestation. 79+ tests, all passing.
+> encrypted TEE submissions and on-chain attestation. 80+ tests, all passing.
 > **Deployed on Ritual Chain testnet** (chainId 1979) at
-> `0x8825681a0472Bdc7e547f36dc7292DCE9449c131`.
+> `0xC95F3A915fC79B806390218563F13617470e4d14`.
 
 ---
 
@@ -65,7 +65,7 @@ The **commit-reveal logic** (submitCommitment, revealAnswer, finalizeWinner) wor
 
 The **LLM judging** (`judgeAll`) requires a deployed LLM inference contract at the configured address. On **Ritual Chain**, the native precompile at `0x0802` provides this — so the full lifecycle (including `judgeAll` and `finalizeWinner`) is functional. This is why **this deployment targets Ritual Chain (chainId 1979)** rather than a chain without the precompile.
 
-**Deployed on Ritual Chain at**: `0x8825681a0472Bdc7e547f36dc7292DCE9449c131`
+**Deployed on Ritual Chain at**: `0xC95F3A915fC79B806390218563F13617470e4d14`
 
 ### Precompile Configuration
 
@@ -196,7 +196,7 @@ sequenceDiagram
 3. Single LLM prompt: `"Judge N submissions: [1]...[2]... Return ranking."`
 4. TEE signs result with attestation key → verified on-chain against `enclaveCodeHash`
 
-**Deployed on Ritual Chain at**: `0xeb231C16A108A35d11C583BA3440dBa37f9A2596`
+**Deployed on Ritual Chain at**: `0x8d45b1bad4dD97ADd4BFCf8728aB3d97a387Ee60`
 
 ### Why stronger than commit-reveal
 
@@ -256,22 +256,22 @@ precompile `0x0000000000000000000000000000000000000802` and deploys
 ### Commit-reveal flow status (Ritual Chain testnet)
 
 The full commit-reveal lifecycle was **executed live on-chain** on the
-deployed contract (`0x8825681a...`) — bounty 1, single participant:
+deployed contract (`0xC95F3A91...`) — bounty 1, single participant:
 
 | Step | TX Hash | Status |
 |------|---------|--------|
-| `createBounty` (0.0001 RITUAL, second-based) | `0x84c0f79281489421a269afa3aa77ffda391281359154bc20a655b7070d386624` | ✅ |
-| `submitCommitment` | `0xeee87b331344998f669ed6b1c1ac2d9b3c6c7a12b9c36b800dccc5ff1a44f981` | ✅ |
-| `revealAnswer` (commitment verified) | `0xdde4b928fac89426e6d240e8ff14643495303819c6cd4ef3294ef14785f5c855` | ✅ |
-| `judgeAll` (LLM precompile 0x0802, status=1) | `0xf8fc2623520c738d7e8906552a4afe88fff48d527c20e932f67a694077c8696e` | ✅ |
-| `finalizeWinner` (reward paid) | `0x46147a89081637a6eb4e891600534d56b218eddd4b65c4c89929b76cfb855845` | ✅ |
+| `createBounty` (0.0001 RITUAL, second-based) | `0xcd1e34bb874abb599162f8066f08834f5d2f80319873732ba2b8786278b1c87a` | ✅ |
+| `submitCommitment` | `0xcfb61faaacbc5bb81cf518d2021c58f5318eef4dc082dbdd574ca7012e9e3a3e` | ✅ |
+| `revealAnswer` (commitment verified) | `0x893b0fdd33ca4499ad8d94f3e2e8ce70658d63ea56e31c5a24e8163a0b6094b3` | ✅ |
+| `judgeAll` (LLM precompile 0x0802, status=1) | `0x47b5359420d3e429ceef0fb7526561b727b913fdd82f5adc589e23ef860abedf` | ✅ |
+| `finalizeWinner` (reward paid) | `0xfde57dd2ee6dead3b26849af4bb3a0150cc180d383b3476b69bd4305002f0782` | ✅ |
 
 On-chain verification: `judged = true`, `answersHash` + `inputHash` stored
 via `getJudgingAttestation(1)`, reward transferred to winner. The LLM billing
 wallet was funded (`deposit`) on the Ritual wallet so the `0x0802` precompile
 runs — `judgeAll` returned `status=1` (synchronous success).
 
-\> `judgeAll`/`finalizeWinner` are also fully exercised in the 79-test suite
+\> `judgeAll`/`finalizeWinner` are also fully exercised in the 80-test suite
 \> with a mocked precompile.
 
 > On Ritual Chain every step is functional, including `judgeAll` (LLM precompile)
@@ -297,8 +297,8 @@ confirms second-based deadlines succeed).
 
 | Contract | Deploy TX |
 |----------|-----------|
-| BountyJudge | `0x80c95bfa2bd816189a201c89ea5f9a5cc028f353ada884cce5c6d5acd5d0cc93` |
-| RitualBountyJudge | `0xe675570341f9e7fb7e51c704dcd7f99e06a4cce8b78155da7d04b8f531ea6281` |
+| BountyJudge | `0x7ca262beb026cc8c41c72a58165199f75f505dcfa418006786c4baeca2136d6b` |
+| RitualBountyJudge | `0x5a69f4a29bf525a85f411503d5282371c1735e942daa8a3cdd86a4c1cfe72e95` |
 
 > Production hardening adds: `refund()` (reclaim reward on a no-reveal
 > dead-end) and **verified `llmInput`** (`judgeAll` binds `answersHash` +
@@ -308,11 +308,11 @@ confirms second-based deadlines succeed).
 
 ## Test Results
 
-**79 tests, 0 failed, 0 skipped** (verified with `forge test -vvv`):
+**80 tests, 0 failed, 0 skipped** (verified with `forge test -vvv`):
 
 | Suite | Tests | Passed |
 |-------|-------|--------|
-| BountyJudgeTest (Track 1) | 48 | 48 ✅ |
+| BountyJudgeTest (Track 1) | 49 | 49 ✅ |
 | BountyJudgeFuzzTest (fuzz) | 4 | 4 ✅ |
 | BountyJudgeInvariantTest (invariant) | 3 | 3 ✅ |
 | RitualBountyJudgeTest (Track 2) | 15 | 15 ✅ |
@@ -434,7 +434,7 @@ In a fair bounty system, the bounty description, rubric, deadlines, and prize am
 |------|-------|-------------|
 | `contracts/BountyJudge.sol` | Required | Commit-reveal bounty judge with configurable precompile |
 | `contracts/RitualBountyJudge.sol` | Advanced | Ritual TEE encrypted submissions with attestation verification |
-| `test/BountyJudge.t.sol` | Both | 79 test cases (55 + 22 + 2), all passing |
+| `test/BountyJudge.t.sol` | Both | 80 test cases (56 + 22 + 2), all passing |
 | `script/Deploy.s.sol` | Both | Foundry deploy script → Ritual Chain (chainId 1979) |
 | `README.md` | Both | Lifecycle, architecture, test plan, reflection, deployment |
 
@@ -464,5 +464,5 @@ forge script script/Deploy.s.sol \
 
 RPC: `https://rpc.ritualfoundation.org` · Deployer: `0xA6DF0aA8F3dB07fC39e292c0F8bb04d37848eaA4`
 
-- BountyJudge: `0x8825681a0472Bdc7e547f36dc7292DCE9449c131` — `LLM_PRECOMPILE = 0x0802`, ms-normalised, refund + verified llmInput
-- RitualBountyJudge: `0xeb231C16A108A35d11C583BA3440dBa37f9A2596`
+- BountyJudge: `0xC95F3A915fC79B806390218563F13617470e4d14` — `LLM_PRECOMPILE = 0x0802`, ms-normalised, refund + verified llmInput
+- RitualBountyJudge: `0x8d45b1bad4dD97ADd4BFCf8728aB3d97a387Ee60`

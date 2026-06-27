@@ -81,6 +81,7 @@ contract BountyJudge is PrecompileConsumer {
     error PaymentFailed();
     error BountyNotFound();
     error NotEligibleForRefund();
+    error AnswerMissingFromPrompt();
 
     // ────────────── Enums ──────────────
     enum Phase {
@@ -366,6 +367,12 @@ contract BountyJudge is PrecompileConsumer {
         b.answersHash = answersHash;
         b.inputHash = inputHash;
 
+        // ENFORCE INPUT INTEGRITY ON-CHAIN: every revealed answer MUST appear
+        // verbatim inside llmInput. This stops the owner from dropping,
+        // swapping, or altering submissions in the prompt fed to the LLM.
+        // (Tamper-resistance is enforced here, not merely auditable off-chain.)
+        _requireAllRevealedAnswersInPrompt(b, llmInput);
+
         // Call Ritual's LLM inference precompile
         bytes memory output = _executePrecompile(
             LLM_PRECOMPILE,
@@ -406,6 +413,37 @@ contract BountyJudge is PrecompileConsumer {
             }
         }
         return keccak256(bundle);
+    }
+
+    /// @dev Reverts unless every revealed answer appears verbatim inside `llmInput`.
+    ///      Enforces that the owner-supplied prompt actually contains each
+    ///      submission — no dropping/swapping/altering revealed answers.
+    function _requireAllRevealedAnswersInPrompt(Bounty storage b, bytes calldata llmInput) internal view {
+        address[] storage parts = b.participants;
+        uint256 len = parts.length;
+        for (uint256 i = 0; i < len; i++) {
+            Submission storage sub = b.submissions[parts[i]];
+            if (sub.revealed) {
+                if (!_contains(llmInput, bytes(sub.answer))) revert AnswerMissingFromPrompt();
+            }
+        }
+    }
+
+    /// @dev Naive substring search: is `needle` contained in `haystack`?
+    ///      Bounded by MAX_SUBMISSIONS × MAX answer length; only run once in judgeAll.
+    function _contains(bytes calldata haystack, bytes memory needle) internal pure returns (bool) {
+        uint256 n = needle.length;
+        if (n == 0) return true;
+        if (n > haystack.length) return false;
+        uint256 end = haystack.length - n;
+        for (uint256 i = 0; i <= end; i++) {
+            bool ok = true;
+            for (uint256 j = 0; j < n; j++) {
+                if (haystack[i + j] != needle[j]) { ok = false; break; }
+            }
+            if (ok) return true;
+        }
+        return false;
     }
 
     /// @notice  Owner reclaims the locked reward when the bounty is a dead-end:
