@@ -1174,13 +1174,13 @@ contract RitualBountyJudgeFuzzTest is Test {
         rJudge.submitJudgingResult(id, addrs, scores, hex"deadbeef");
     }
 
-    function testFuzz_BountyCountIncrements() public {
+    function testBountyCountIncrementsMonotonically() public {
         uint256 before = rJudge.bountyCount();
         rJudge.createBounty{value: 1}(block.timestamp + 1 days, ENCLAVE, address(verifier));
         assertEq(rJudge.bountyCount(), before + 1);
     }
 
-    function testFuzz_PhaseDoesNotRegress() public {
+    function testPhaseStartsAtSubmission() public {
         uint256 id = rJudge.createBounty{value: 1}(block.timestamp + 1 days, ENCLAVE, address(verifier));
         (,,,,RitualBountyJudge.Phase p0,) = rJudge.getBounty(id);
         assertTrue(p0 == RitualBountyJudge.Phase.SUBMISSION);
